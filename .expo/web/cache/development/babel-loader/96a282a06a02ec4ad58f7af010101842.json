@@ -1,0 +1,1 @@
+{"ast":null,"code":"var Api = \"http://192.168.1.105:5000/api\";\nexport { Api };","map":{"version":3,"names":["Api"],"sources":["E:/Github/gigtune/src/Config/Api/index.js"],"sourcesContent":["const Api = \"http://192.168.1.105:5000/api\"\r\n\r\nexport { Api }"],"mappings":"AAAA,IAAMA,GAAG,GAAG,+BAAZ;AAEA,SAASA,GAAT"},"metadata":{},"sourceType":"module"}
