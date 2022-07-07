@@ -4,15 +4,16 @@ import { BlurView } from 'expo-blur';
 import { Ionicons, Entypo, FontAwesome, MaterialCommunityIcons, EvilIcons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
 import RBSheet from "react-native-raw-bottom-sheet";
-
+import { useSelector } from 'react-redux';
 export default function Index({ navigation }) {
+    const state = useSelector(state => state)
     const [datePicker, setDatePicker] = useState(false)
     const [date, setDate] = useState("date");
     const datePickerFun = (event, text) => {
         setDate(text.toString().slice(4, 15))
         setDatePicker(false)
     }
-    const locationRef = useRef();
+    const approveSuggestion = state.selectedApproveSuggestion
     const arr = [1, 2, 3, 4, 5, 6, 7]
     const [readMore, setReadMore] = useState(false)
     const ReadMoreBtn = () => {
@@ -27,7 +28,7 @@ export default function Index({ navigation }) {
             <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
                 <ScrollView showsVerticalScrollIndicator={false}>
                     <View style={styles.contentContainer}>
-                        <TouchableOpacity style={styles.backIconContainer} onPress={() => navigation.navigate("Suggestions")}>
+                        <TouchableOpacity style={styles.backIconContainer} onPress={() => navigation.navigate("Event")}>
                             <Ionicons name="arrow-back-sharp" size={33} color="white" />
                         </TouchableOpacity>
                         <View style={styles.titleContainer}>
@@ -35,20 +36,20 @@ export default function Index({ navigation }) {
                         </View>
                         <View style={styles.topBox}>
                             <Text style={styles.topBoxFirstText}>You get</Text>
-                            <Text style={styles.topBoxSecondText}>$1,000</Text>
+                            <Text style={styles.topBoxSecondText}>{`$${state?.approveSugesstionCharges}`}</Text>
                         </View>
                         <View>
-                            <Text style={styles.eventTitle}>Jacob and Emma’s Wedding</Text>
+                            <Text style={styles.eventTitle}>{approveSuggestion.title}</Text>
                             <View style={styles.eventDateContainer}>
                                 <FontAwesome name="calendar" size={18} color="white" />
-                                <Text style={styles.eventDate}>5 February, 2022, 14:30</Text>
+                                <Text style={styles.eventDate}>{approveSuggestion.date}</Text>
                             </View>
                             <View style={styles.eventLocationContainer}>
                                 <View style={styles.eventLocation}>
                                     <Ionicons name="location-sharp" size={18} color="white" />
                                     <View>
-                                        <Text style={styles.locationTitle}>Grand Luxury Wedding Hall</Text>
-                                        <Text style={styles.location}>Tulsa, Oklahoma</Text>
+                                        <Text style={styles.locationTitle}>{approveSuggestion?.location}</Text>
+                                        {/* <Text style={styles.location}>Tulsa, Oklahoma</Text> */}
                                     </View>
                                 </View>
                                 <View>
@@ -59,15 +60,19 @@ export default function Index({ navigation }) {
                             </View>
                             <BlurView intensity={40} tint="light" style={styles.TextArea}>
                                 <Text style={styles.detailText} numberOfLines={readMore == false ? 4 : 1000}>
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Venenatis cursus potenti pharetra amet, quis turpis dignissim. Faucibus vel, ut nulla quis felis in eget. Lectus sit nulla cras erat amet adipiscing.
+                                    {approveSuggestion.discription}
                                 </Text>
-                                <ReadMoreBtn />
+                                {
+                                    approveSuggestion?.discription.length > 250 ?
+                                        <ReadMoreBtn />
+                                        : null
+                                }
                             </BlurView>
                             <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            arr.map((e, i) => {
+                                            approveSuggestion.photos?.map((e, i) => {
                                                 return (
                                                     <TouchableOpacity key={i} style={styles.imageContainer}>
                                                         <Image source={require("../../../Assets/Images/dj.png")} style={styles.images} />
@@ -82,7 +87,7 @@ export default function Index({ navigation }) {
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            arr.map((e, i) => {
+                                            approveSuggestion.files?.map((e, i) => {
                                                 return (
                                                     <TouchableOpacity key={i} style={styles.fileContainer}>
                                                         <MaterialCommunityIcons name="file-pdf-box" size={27} color="white" />
@@ -98,12 +103,12 @@ export default function Index({ navigation }) {
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            arr.map((e, i) => {
+                                            approveSuggestion.team?.map((e, i) => {
                                                 return (
                                                     <View key={i} style={styles.teamMember}>
-                                                        <Image source={require("../../../Assets/Images/team.png")} style={styles.creatorProfileImage} />
-                                                        <Text style={styles.teamMemberName}>John</Text>
-                                                        <Text style={styles.teamMemberPosition}>CEO</Text>
+                                                        <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
+                                                        <Text style={styles.teamMemberName}>{e.fullName}</Text>
+                                                        <Text style={styles.teamMemberPosition}>{e.jobRole}</Text>
                                                     </View>
                                                 )
                                             })
@@ -214,7 +219,7 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 18,
         fontWeight: '700',
-        marginLeft: 5
+        marginLeft: 5, width: 230
     },
     location: {
         color: "white",
@@ -281,7 +286,7 @@ const styles = StyleSheet.create({
         color: "white", fontSize: 16
     },
     eventCreatorDetail: {
-        marginTop: 10,
+        marginVertical: 10,
         flexDirection: 'row',
         justifyContent: 'flex-start',
         borderRadius: 10,

@@ -1,5 +1,5 @@
 import { createStackNavigator } from '@react-navigation/stack';
-import { Event, CreateEvent, SuggestionsDetail, SuggestionsFeed, EditEvent, EventWithoutTeam, EventWithTeam, Team, EventCreateDone, SuggestionsApproveDone, SuggestionsApprove } from '../../../Screens';
+import { Event, CreateEvent, SuggestionsDetail, SuggestionsFeed, EditEvent, Charges, EventWithoutTeam, EventWithTeam, Team, EventCreateDone, SuggestionsApproveDone, SuggestionsApprove } from '../../../Screens';
 import { AuthenticationNavigation } from '../../../Config/Navigation';
 const Stack = createStackNavigator();
 export default function Index() {
@@ -17,6 +17,7 @@ export default function Index() {
             <Stack.Screen options={{ headerShown: false }} name="SuggestionsApprove" component={SuggestionsApprove} />
             <Stack.Screen options={{ headerShown: false }} name="SuggestionsApproveDone" component={SuggestionsApproveDone} />
             <Stack.Screen options={{ headerShown: false }} name="EditEvent" component={EditEvent} />
+            <Stack.Screen options={{ headerShown: false }} name="Charges" component={Charges} />
         </Stack.Navigator>
     );
 }

@@ -5,16 +5,6 @@ import { Ionicons, Entypo, FontAwesome, MaterialCommunityIcons, AntDesign } from
 import RBSheet from "react-native-raw-bottom-sheet";
 
 export default function Index({ navigation }) {
-    const filterRef = useRef();
-    const arr = [1, 2, 3, 4, 5, 6, 7]
-    const [readMore, setReadMore] = useState(false)
-    const ReadMoreBtn = () => {
-        return (
-            <TouchableOpacity style={styles.readBtn} onPress={() => setReadMore(!readMore)}>
-                <Text style={styles.readMoreText}>{readMore == false ? "Read More" : "Read Less"}</Text>
-            </TouchableOpacity>
-        )
-    }
     return (
         <View style={styles.container}>
             <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
@@ -28,8 +18,8 @@ export default function Index({ navigation }) {
                             <Text style={styles.eventCreateSubTitle}>Your event has been synced</Text>
                         </View>
                         <View>
-                            <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.navigate("BottomNavigation")}>
-                                <Text style={styles.doneBtnText}>Done</Text>
+                            <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.navigate("Event")}>
+                                <Text style={styles.doneBtnText}>Done</Text>7
                             </TouchableOpacity>
                         </View>
                     </View>

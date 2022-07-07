@@ -32,7 +32,6 @@ export default function Index({ navigation }) {
   }, []);
   const selectProfileImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync();
-
     if (!result.cancelled) {
       const formData = new FormData();
       formData.append('image', {

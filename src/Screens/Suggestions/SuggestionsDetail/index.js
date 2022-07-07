@@ -1,19 +1,28 @@
-import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useRef } from 'react'
+import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { BlurView } from 'expo-blur';
 import { Ionicons, Entypo, FontAwesome, MaterialCommunityIcons, EvilIcons } from '@expo/vector-icons';
-import RNDateTimePicker from '@react-native-community/datetimepicker';
-import RBSheet from "react-native-raw-bottom-sheet";
-
+import { Api } from '../../../Config/Api'
+import axios from 'axios'
+import { useSelector } from 'react-redux';
+const wait = (timeout) => {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+}
 export default function Index({ navigation }) {
+    const [refreshing, setRefreshing] = useState(false);
+    const state = useSelector(state => state)
+    const [adminFilter, setAdminFilter] = useState([])
     const [datePicker, setDatePicker] = useState(false)
     const [date, setDate] = useState("date");
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        wait(2000).then(() => setRefreshing(false));
+    }, []);
     const datePickerFun = (event, text) => {
         setDate(text.toString().slice(4, 15))
         setDatePicker(false)
     }
     const locationRef = useRef();
-    const arr = [1, 2, 3, 4, 5, 6, 7]
     const [readMore, setReadMore] = useState(false)
     const ReadMoreBtn = () => {
         return (
@@ -22,10 +31,55 @@ export default function Index({ navigation }) {
             </TouchableOpacity>
         )
     }
+    const suggestions = state.selectedSuggestions
+    useEffect(() => {
+        setAdminFilter(suggestions?.team?.filter((e) => e.id == state.user._id))
+    }, [suggestions]);
+    const approveRequest = async () => {
+        const index = suggestions?.team?.map(function (e) {
+            return e.id;
+        }).indexOf(state.user._id)
+        suggestions.team[index].status = "Approve"
+        const userStatusIndex = state.user?.suggestions?.map(function (e) {
+            return e.eventId;
+        }).indexOf(suggestions._id)
+        state.user.suggestions[userStatusIndex].status = "Approve"
+        suggestions.team[index].status = "Approve"
+        await axios.post(`${Api}/suggestions/approve`, { userId: state.user._id, user: state.user, eventId: suggestions._id, event: suggestions }, {
+            headers: {
+                token: state.token
+            }
+        }).then((res) => {
+            navigation.navigate("SuggestionsApproveDone")
+        }).catch(() => { })
+    }
+    const rejectRequest = async () => {
+        const index = suggestions?.team?.map(function (e) {
+            return e.id;
+        }).indexOf(state.user._id)
+        suggestions.team[index].status = "Reject"
+        const userStatusIndex = state.user?.suggestions?.map(function (e) {
+            return e.eventId;
+        }).indexOf(suggestions._id)
+        state.user.suggestions[userStatusIndex].status = "Reject"
+        suggestions.team[index].status = "Reject"
+        await axios.post(`${Api}/suggestions/reject`, { userId: state.user._id, user: state.user, eventId: suggestions._id, event: suggestions }, {
+            headers: {
+                token: state.token
+            }
+        }).then((res) => {
+            navigation.navigate("SuggestionsApproveDone")
+        }).catch(() => { })
+    }
     return (
         <View style={styles.container}>
             <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView showsVerticalScrollIndicator={false} refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                    />
+                }>
                     <View style={styles.contentContainer}>
                         <TouchableOpacity style={styles.backIconContainer} onPress={() => navigation.navigate("Suggestions")}>
                             <Ionicons name="arrow-back-sharp" size={33} color="white" />
@@ -35,20 +89,20 @@ export default function Index({ navigation }) {
                         </View>
                         <View style={styles.topBox}>
                             <Text style={styles.topBoxFirstText}>You get</Text>
-                            <Text style={styles.topBoxSecondText}>$1,000</Text>
+                            <Text style={styles.topBoxSecondText}>{`$${adminFilter[0]?.price}`}</Text>
                         </View>
                         <View>
-                            <Text style={styles.eventTitle}>Jacob and Emma’s Wedding</Text>
+                            <Text style={styles.eventTitle}>{suggestions.title}</Text>
                             <View style={styles.eventDateContainer}>
                                 <FontAwesome name="calendar" size={18} color="white" />
-                                <Text style={styles.eventDate}>5 February, 2022, 14:30</Text>
+                                <Text style={styles.eventDate}>{suggestions.date}</Text>
                             </View>
                             <View style={styles.eventLocationContainer}>
                                 <View style={styles.eventLocation}>
                                     <Ionicons name="location-sharp" size={18} color="white" />
                                     <View>
-                                        <Text style={styles.locationTitle}>Grand Luxury Wedding Hall</Text>
-                                        <Text style={styles.location}>Tulsa, Oklahoma</Text>
+                                        <Text style={styles.locationTitle}>{suggestions.location}</Text>
+                                        {/* <Text style={styles.location}>Tulsa, Oklahoma</Text> */}
                                     </View>
                                 </View>
                                 <View>
@@ -59,18 +113,22 @@ export default function Index({ navigation }) {
                             </View>
                             <BlurView intensity={40} tint="light" style={styles.TextArea}>
                                 <Text style={styles.detailText} numberOfLines={readMore == false ? 4 : 1000}>
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Venenatis cursus potenti pharetra amet, quis turpis dignissim. Faucibus vel, ut nulla quis felis in eget. Lectus sit nulla cras erat amet adipiscing.
+                                    {suggestions.discription}
                                 </Text>
-                                <ReadMoreBtn />
+                                {
+                                    suggestions?.discription.length > 250 ?
+                                        <ReadMoreBtn />
+                                        : null
+                                }
                             </BlurView>
                             <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            arr.map((e, i) => {
+                                            suggestions.photos?.map((e, i) => {
                                                 return (
                                                     <TouchableOpacity key={i} style={styles.imageContainer}>
-                                                        <Image source={require("../../../Assets/Images/dj.png")} style={styles.images} />
+                                                        <Image source={{ uri: `https://drive.google.com/uc?export=view&id=${e}` }} style={styles.images} />
                                                     </TouchableOpacity>
                                                 )
                                             })
@@ -82,7 +140,7 @@ export default function Index({ navigation }) {
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            arr.map((e, i) => {
+                                            suggestions.files?.map((e, i) => {
                                                 return (
                                                     <TouchableOpacity key={i} style={styles.fileContainer}>
                                                         <MaterialCommunityIcons name="file-pdf-box" size={27} color="white" />
@@ -98,12 +156,12 @@ export default function Index({ navigation }) {
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            arr.map((e, i) => {
+                                            suggestions.team?.map((e, i) => {
                                                 return (
                                                     <View key={i} style={styles.teamMember}>
-                                                        <Image source={require("../../../Assets/Images/team.png")} style={styles.creatorProfileImage} />
-                                                        <Text style={styles.teamMemberName}>John</Text>
-                                                        <Text style={styles.teamMemberPosition}>CEO</Text>
+                                                        <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
+                                                        <Text style={styles.teamMemberName}>{e.fullName}</Text>
+                                                        <Text style={styles.teamMemberPosition}>{e.jobRole}</Text>
                                                     </View>
                                                 )
                                             })
@@ -121,11 +179,11 @@ export default function Index({ navigation }) {
                             </BlurView>
                         </View>
                         <View style={styles.btnContainer}>
-                            <TouchableOpacity style={styles.approveEventBtn}>
-                                <Text style={styles.approveEventBtnText}>Accept</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.rejectEventBtn}>
+                            <TouchableOpacity style={styles.rejectEventBtn} onPress={rejectRequest}>
                                 <Text style={styles.rejectEventBtnText}>Reject</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.approveEventBtn} onPress={approveRequest}>
+                                <Text style={styles.approveEventBtnText}>Accept</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

@@ -3,7 +3,11 @@ const DATA = {
     files: [],
     token: '',
     selectedEvent: {},
-    user: ""
+    user: "",
+    selectedSuggestions: {},
+    selectedContact: [],
+    selectedApproveSuggestion: {},
+    approveSugesstionCharges: ''
 }
 
 const Reducor = (state = DATA) => {

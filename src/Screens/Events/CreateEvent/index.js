@@ -117,6 +117,7 @@ export default function Index({ navigation }) {
     }
   }
   const createEvent = async () => {
+    setRefreshing(true)
     const eventCreateData = {
       title,
       date,
@@ -126,6 +127,7 @@ export default function Index({ navigation }) {
       files
     }
     if (title == undefined) {
+      setRefreshing(false)
       Toast.show("Enter Event Title", {
         duration: Toast.durations.LONG,
         position: Toast.positions.TOP,
@@ -136,6 +138,7 @@ export default function Index({ navigation }) {
       });
     }
     else if (date == undefined) {
+      setRefreshing(false)
       Toast.show("Select Event Date", {
         duration: Toast.durations.LONG,
         position: Toast.positions.TOP,
@@ -146,6 +149,7 @@ export default function Index({ navigation }) {
       });
     }
     else if (location == undefined) {
+      setRefreshing(false)
       Toast.show("Pick Location", {
         duration: Toast.durations.LONG,
         position: Toast.positions.TOP,
@@ -156,6 +160,7 @@ export default function Index({ navigation }) {
       });
     }
     else if (discription == undefined) {
+      setRefreshing(false)
       Toast.show("Enter Discription", {
         duration: Toast.durations.LONG,
         position: Toast.positions.TOP,
@@ -166,6 +171,7 @@ export default function Index({ navigation }) {
       });
     }
     else if (photos[0] == undefined) {
+      setRefreshing(false)
       Toast.show("Select Event Photos", {
         duration: Toast.durations.LONG,
         position: Toast.positions.TOP,
@@ -176,6 +182,7 @@ export default function Index({ navigation }) {
       });
     }
     else if (files[0] == undefined) {
+      setRefreshing(false)
       Toast.show("Select Event Files", {
         duration: Toast.durations.LONG,
         position: Toast.positions.TOP,
@@ -192,6 +199,7 @@ export default function Index({ navigation }) {
         }
       })
         .then(async (response) => {
+          setRefreshing(false)
           setTitle(undefined);
           setLocation(undefined)
           setPhotos([])
@@ -201,6 +209,7 @@ export default function Index({ navigation }) {
           navigation.navigate("EventCreateDone")
         })
         .catch(function (error) {
+          setRefreshing(false)
           Toast.show("Check Internet Connection", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,

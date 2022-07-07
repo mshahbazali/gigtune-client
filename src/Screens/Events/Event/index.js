@@ -24,7 +24,8 @@ export default function Index({ navigation }) {
   const [selectDate, setSelectDate] = useState()
   const [adminId, setAdminId] = useState();
   const [today, setToday] = useState(new Date())
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState('');
+  const [approveSuggestions, setApproveSuggestions] = useState()
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
@@ -41,6 +42,13 @@ export default function Index({ navigation }) {
       return jsonValue != null ? setAdminId(JWT.decode(JSON.parse(jsonValue).token, "secret_gigtune").id) : null;
     } catch (e) { }
   }
+  const suggestionArray = []
+  const suggestionFilter = state.user.suggestions?.filter((e) => e.status == "Approve");
+  for (let i = 0; i < suggestionFilter?.length; i++) {
+    suggestionArray.push(suggestionFilter[i].eventId)
+  }
+
+
   useEffect(() => {
     getToken()
     getAdminId()
@@ -56,13 +64,65 @@ export default function Index({ navigation }) {
       state.user = res.data
     }).catch((err) => {
     })
+    axios.post(`${Api}/suggestions/`, { suggestions: suggestionArray }, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      setApproveSuggestions(res.data.suggestions);
+    }).catch(() => { })
+  }, [])
+  useEffect(() => {
+    getToken()
+    getAdminId()
+    axios.get(`${Api}/event/`).then((res) => {
+      setEvents(res.data.events);
+    }).catch((err) => {
+    })
+    axios.get(`${Api}/user/me/`, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      state.user = res.data
+    }).catch((err) => { })
+    axios.post(`${Api}/suggestions/`, { suggestions: suggestionArray }, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      setApproveSuggestions(res.data.suggestions);
+    }).catch(() => { })
   }, [refreshing])
+
+
+
+
+
   const adminFilter = events?.filter((e) => e.admin == adminId);
   const eventFilter = adminFilter?.filter((e) => e.date == (selectDate == undefined ? currentDate : selectDate));
+  const approveSuggestionDate = approveSuggestions?.filter((e) => e.date == (selectDate == undefined ? currentDate : selectDate));
   const searchFilter = adminFilter?.filter((e) => e.title == searchQuery);
   let allDateObject = {};
-  events.forEach((day) => {
+  adminFilter?.forEach((day) => {
     allDateObject[day.date] = {
+      customStyles: {
+        container: {
+          width: 50,
+          height: 50,
+          borderRadius: 8
+        },
+        text: {
+          color: 'white',
+          fontWeight: 'bold',
+        }
+      },
+      marked: true, dotColor: '#fff'
+    };
+  });
+  let approveSuggestionsDate = {};
+  approveSuggestions?.forEach((day) => {
+    approveSuggestionsDate[day.date] = {
       customStyles: {
         container: {
           width: 50,
@@ -93,13 +153,16 @@ export default function Index({ navigation }) {
       },
       marked: true, dotColor: '#fff'
     },
-    ...allDateObject
+    ...allDateObject,
+    ...approveSuggestionsDate
   };
 
   var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const months = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
+  console.log(adminFilter);
+  console.log(approveSuggestions);
   return (
     <View style={styles.container}>
       <View style={styles.background}>
@@ -241,26 +304,31 @@ export default function Index({ navigation }) {
                     </ScrollView>
                     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                       {
-                        arr.map((e, i) => {
+                        approveSuggestionDate?.map((e, i) => {
+                          const charges = e?.team?.filter(e => e.id === state.user._id)
                           return (
-                            <TouchableOpacity key={i} style={styles.eventList} onPress={() => navigation.navigate("SuggestionsApprove")}>
+                            <TouchableOpacity key={i} style={styles.eventList} onPress={async () => {
+                              state.approveSugesstionCharges = charges[0].price
+                              state.selectedApproveSuggestion = e
+                              await navigation.navigate("SuggestionsApprove")
+                            }}>
                               <View>
-                                <Text style={styles.eventListTitle}>Jacob and Emma’s Wedding</Text>
+                                <Text style={styles.eventListTitle}>{e.title}</Text>
                               </View>
                               <View style={styles.eventListBottomLine}>
-                                <View>
+                                {/* <View>
                                   <Image source={require("../../../Assets/Images/team.png")} style={styles.eventListBottomLineTeamImage} />
-                                </View>
+                                </View> */}
                                 <View style={styles.eventListBottomLineCalandar}>
                                   <FontAwesome name="calendar" size={18} color="white" />
-                                  <Text style={styles.eventListBottomLineCalandarText}>18 Jun</Text>
+                                  <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
                                 </View>
                                 <View style={styles.eventListBottomLineCalandar}>
                                   <Octicons name="location" size={18} color="white" />
-                                  <Text style={styles.eventListBottomLineCalandarText}>Location</Text>
+                                  <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 14)}...</Text>
                                 </View>
                                 <View>
-                                  <Text style={styles.eventListBottomLineCalandarText}>$50</Text>
+                                  <Text style={styles.eventListBottomLineCalandarText}>{`$${charges[0].price}`}</Text>
                                 </View>
                               </View>
                             </TouchableOpacity>
@@ -318,7 +386,6 @@ export default function Index({ navigation }) {
           animationType={"slide"}
           closeOnDragDown={true}
           dragFromTopOnly={true}
-          onOpen={(e) => { console.log(e) }}
           ref={filterRef}
           height={200}
           openDuration={250}

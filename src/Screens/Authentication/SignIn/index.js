@@ -1,4 +1,4 @@
-import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
+import { View, Image, StyleSheet, RefreshControl, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import React, { useState, useCallback } from 'react'
 import { BlurView } from 'expo-blur';
 import axios from 'axios';

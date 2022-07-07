@@ -7,7 +7,6 @@ import { useSelector } from 'react-redux';
 import { WebView } from 'react-native-webview';
 import { Api } from '../../../Config/Api';
 import axios from 'axios';
-import SelectDropdown from 'react-native-select-dropdown'
 import JWT from 'expo-jwt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -26,9 +25,6 @@ export default function Index({ navigation }) {
     const [readMore, setReadMore] = useState(false)
     const [searchQuery, setSearchQuery] = useState([])
     const [seletedContact, setSeletedContact] = useState([])
-    const [addCharge, setAddCharge] = useState(false)
-    const [selectedTeamMember, setSelectedTeamMember] = useState([])
-    const [charges, setCharges] = useState()
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         wait(2000).then(() => setRefreshing(false));
@@ -45,9 +41,8 @@ export default function Index({ navigation }) {
             setUsers(res.data.users);
         }).catch((err) => { })
     }, [refreshing])
-    const adminFilter = users?.filter((e) => e._id !== adminId);
+
     const searchResult = users?.filter((e) => e.fullName == searchQuery);
-    console.log(selectedTeamMember);
     const ReadMoreBtn = () => {
         return (
             <TouchableOpacity style={styles.readBtn} onPress={() => setReadMore(!readMore)}>
@@ -57,395 +52,314 @@ export default function Index({ navigation }) {
     }
     const event = state.selectedEvent
     const user = state.user
+    const adminFilter = users?.filter((e) => e._id !== adminId);
     const deleteEvent = () => {
         axios.post(`${Api}/event/delete`, { _id: event._id, admin: event.admin }, {
             headers: {
                 token: state.token
             }
         }).then((res) => {
-            console.log(res.data);
             navigation.navigate("Event")
-        }).catch(() => { })
-    }
-    const addTeamMember = () => {
-        const memberData = {
-            admin: adminId,
-            _id: event._id,
-            team: selectedTeamMember
-        }
-        axios.post(`${Api}/team/add`, memberData, {
-            headers: {
-                token: state.token
-            }
-        }).then((res) => {
-            console.log(res.data);
-
         }).catch(() => { })
     }
     return (
         <View style={styles.container}>
             <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
-                {
-                    addCharge == false ?
-                        <ScrollView showsVerticalScrollIndicator={false} refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh}
-                            />
-                        }>
-                            <View style={styles.contentContainer}>
-                                <View style={styles.topNavContainer}>
-                                    <TouchableOpacity onPress={() => navigation.navigate("Event")}>
-                                        <Ionicons name="arrow-back-sharp" size={33} color="white" />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => filterRef.current.open()}>
-                                        <Entypo name="dots-three-vertical" size={24} color="white" />
-                                    </TouchableOpacity>
+                <ScrollView showsVerticalScrollIndicator={false} refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                    />
+                }>
+                    <View style={styles.contentContainer}>
+                        <View style={styles.topNavContainer}>
+                            <TouchableOpacity onPress={() => navigation.navigate("Event")}>
+                                <Ionicons name="arrow-back-sharp" size={33} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => filterRef.current.open()}>
+                                <Entypo name="dots-three-vertical" size={24} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                        <View>
+                            <Text style={styles.eventTitle}>{event?.title}</Text>
+                            <View style={styles.eventDateContainer}>
+                                <FontAwesome name="calendar" size={18} color="white" />
+                                <Text style={styles.eventDate}>{event?.date}</Text>
+                            </View>
+                            <View style={styles.eventLocationContainer}>
+                                <View style={styles.eventLocation}>
+                                    <Ionicons name="location-sharp" size={18} color="white" />
+                                    <View>
+                                        <Text style={styles.locationTitle}>{event?.location}</Text>
+                                        {/* <Text style={styles.location}>{event.location.slice(15,20)}</Text> */}
+                                    </View>
                                 </View>
                                 <View>
-                                    <Text style={styles.eventTitle}>{event?.title}</Text>
-                                    <View style={styles.eventDateContainer}>
-                                        <FontAwesome name="calendar" size={18} color="white" />
-                                        <Text style={styles.eventDate}>{event?.date}</Text>
-                                    </View>
-                                    <View style={styles.eventLocationContainer}>
-                                        <View style={styles.eventLocation}>
-                                            <Ionicons name="location-sharp" size={18} color="white" />
-                                            <View>
-                                                <Text style={styles.locationTitle}>{event?.location}</Text>
-                                                {/* <Text style={styles.location}>{event.location.slice(15,20)}</Text> */}
-                                            </View>
-                                        </View>
-                                        <View>
-                                            <TouchableOpacity style={styles.locationBtn}>
-                                                <Text style={styles.locationBtnText}>Go</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </View>
-                                    <BlurView intensity={40} tint="light" style={styles.TextArea}>
-                                        <Text style={styles.detailText} numberOfLines={readMore == false ? 4 : 1000}>
-                                            {event?.discription}
-                                        </Text>
-                                        {
-                                            event?.discription.length > 250 ?
-                                                <ReadMoreBtn />
-                                                : null
-                                        }
-                                    </BlurView>
-                                    <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
-                                        <View style={styles.userDetail}>
-                                            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                                                {
-                                                    event?.photos?.map((e, i) => {
-                                                        return (
-                                                            <TouchableOpacity key={i} style={styles.imageContainer} onPress={() => {
-                                                                setFilePath(e);
-                                                                checkFileRef.current.open()
-                                                            }}>
-                                                                <Image source={{ uri: `https://drive.google.com/uc?export=view&id=${e}` }} style={styles.images} />
-                                                            </TouchableOpacity>
-                                                        )
-                                                    })
-                                                }
-                                            </ScrollView>
-                                        </View>
-                                    </BlurView>
-                                    <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
-                                        <View style={styles.userDetail}>
-                                            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                                                {
-                                                    event.files?.map((e, i) => {
-                                                        return (
-                                                            <TouchableOpacity key={i} style={styles.fileContainer} onPress={() => {
-                                                                setFilePath(e);
-                                                                checkFileRef.current.open()
-                                                            }}>
-                                                                <MaterialCommunityIcons name="file-pdf-box" size={27} color="white" />
-                                                                <Text style={styles.fileView}>VIEW</Text>
-                                                            </TouchableOpacity>
-                                                        )
-                                                    })
-                                                }
-                                            </ScrollView>
-                                        </View>
-                                    </BlurView>
-                                    <Text style={styles.teamMemberTitle}>Team Members</Text>
-                                    {
-                                        event.team[0] == undefined ?
-                                            <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
-                                                <View style={styles.teamContainer}>
-                                                    <Text style={styles.teamGuideText}>There is no team member for now. Add a member</Text>
-                                                    <TouchableOpacity style={styles.teamAddBtnWithoutTeam} onPress={() => contactRef.current.open()}>
-                                                        <AntDesign name="pluscircleo" size={24} color="#ED5424" />
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </BlurView>
-                                            :
-                                            <BlurView intensity={40} tint="light" style={styles.teamMainContainer}>
-                                                <View style={styles.teamContainer}>
-                                                    <View style={styles.teamMembers}>
-                                                        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                                                            {
-                                                                event.team?.map((e, i) => {
-                                                                    return (
-                                                                        <View key={i} style={styles.teamMember}>
-                                                                            <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
-                                                                            <Text style={styles.teamMemberName}>{e.fullName}</Text>
-                                                                            <Text style={styles.teamMemberCharges}>{e.price}</Text>
-                                                                            {/* <Text style={{ color: "white", fontWeight: '500', fontSize: 13, opacity: 1, marginTop: -2 }}>PAID</Text> */}
-                                                                        </View>
-                                                                    )
-                                                                })
-                                                            }
-
-                                                        </ScrollView>
-                                                    </View>
-                                                    <TouchableOpacity style={styles.teamAddBtn} onPress={() => contactRef.current.open()}>
-                                                        <AntDesign name="pluscircleo" size={24} color="#ED5424" />
-                                                    </TouchableOpacity>
-                                                </View>
-                                                <View>
-                                                    <TouchableOpacity style={styles.editTeamMember} onPress={() => navigation.navigate("Team")}>
-                                                        <Text style={styles.editTeamMemberText}>Edit Team</Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                            </BlurView>
-                                    }
-
-                                    <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
-                                        <Image source={{ uri: state.user.profileImage }} style={styles.creatorProfileImage} />
-                                        <View style={styles.userDetail}>
-                                            <Text style={styles.creatorLine}>You created the event</Text>
-                                            <Text style={styles.creatorName}>{event.admin == user._id ? user.fullName : null}</Text>
-                                        </View>
-                                    </BlurView>
+                                    <TouchableOpacity style={styles.locationBtn}>
+                                        <Text style={styles.locationBtnText}>Go</Text>
+                                    </TouchableOpacity>
                                 </View>
                             </View>
-                            <RBSheet
-                                animationType={"slide"}
-                                closeOnDragDown={true}
-                                dragFromTopOnly={true}
-                                ref={filterRef}
-                                height={200}
-                                openDuration={250}
-                                closeDuration={250}
-                                customStyles={{
-                                    wrapper: {
-                                        backgroundColor: "transparent"
-                                    },
-                                    draggableIcon: {
-                                        marginTop: -10
-                                    },
-                                    container: {
-                                        padding: 20
-                                    }
-                                }}
-                            >
-                                <View>
-                                    <TouchableOpacity style={styles.listViewBtn} onPress={() => {
-                                        state.selectedEvent = event
-                                        navigation.navigate("EditEvent")
-                                        filterRef.current.close()
-                                    }}>
-                                        <Text style={styles.listViewBtnText}>Edit</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity style={styles.listViewBtn} onPress={() => {
-                                        deleteEvent()
-                                        filterRef.current.close()
-                                    }}>
-                                        <Text style={styles.listViewDeleteBtnText}>Delete</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </RBSheet>
-                            <RBSheet
-                                animationType={"slide"}
-                                closeOnDragDown={true}
-                                dragFromTopOnly={true}
-                                onOpen={(e) => { console.log(e) }}
-                                ref={checkFileRef}
-                                height={600}
-                                openDuration={250}
-                                closeDuration={250}
-                                customStyles={{
-                                    wrapper: {
-                                        backgroundColor: "transparent"
-                                    },
-                                    draggableIcon: {
-                                        marginTop: -10
-                                    },
-                                    container: {
-                                        padding: 20
-                                    }
-                                }}
-                            >
-                                <WebView
-                                    style={styles.container}
-                                    source={{ uri: `https://drive.google.com/file/d/${filePath}/view` }}
-                                />
-                            </RBSheet>
-                            <RBSheet
-                                animationType={"slide"}
-                                closeOnDragDown={true}
-                                dragFromTopOnly={true}
-                                onOpen={(e) => { console.log(e) }}
-                                ref={contactRef}
-                                height={700}
-                                openDuration={250}
-                                closeDuration={250}
-                                customStyles={{
-                                    wrapper: {
-                                        backgroundColor: "transparent"
-                                    },
-                                    draggableIcon: {
-                                        marginTop: -10
-                                    },
-                                    container: {
-                                        padding: 20
-                                    }
-                                }}
-                            >
-                                <View style={styles.contactsContainer}>
-                                    <ScrollView showsVerticalScrollIndicator={false}>
-                                        <View style={styles.contactsTitleContainer}>
-                                            <Text style={styles.contactTitle}>Select contacts</Text>
-                                            <TouchableOpacity style={styles.contactSelectBtn} onPress={() => {
-                                                setAddCharge(true)
-                                                contactRef.current.close()
-                                            }}>
-                                                <Text style={styles.contactSelectBtnText}>Next</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                        <View>
-                                            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                                                {
-                                                    seletedContact.map((e, i) => {
-                                                        return (
-                                                            <View key={i} style={styles.contactProfileContainer}>
-                                                                <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
-                                                                <Text style={styles.contactName}>{e.fullName}</Text>
-                                                            </View>
-                                                        )
-                                                    })
-                                                }
-
-                                            </ScrollView>
-                                        </View>
-                                        <View>
-                                            <View style={styles.contactSearchContainer}>
-                                                <AntDesign name="search1" size={24} color="#797979" />
-                                                <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Job Roles' style={styles.contactSearchInput} placeholderTextColor="#797979" />
-                                            </View>
-                                        </View>
-                                        <View>
-                                            <ScrollView showsVerticalScrollIndicator={false}>
-                                                {
-                                                    searchResult !== undefined ? adminFilter.map((e, i) => {
-                                                        return (
-                                                            <TouchableOpacity key={i} style={styles.contactsShowContainer} onPress={() => setSeletedContact([...seletedContact, e])
-                                                            }>
-                                                                {/* <TouchableOpacity style={{ width: 18, height: 18, borderRadius: 80, borderColor: "#CECECF", borderWidth: 2, }}>
-                                                            </TouchableOpacity> */}
-                                                                <View style={styles.contactData}>
-                                                                    <View>
-                                                                        <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
-                                                                    </View>
-                                                                    <View style={styles.contactNameData}>
-                                                                        <Text style={styles.contactName}>{e.fullName}</Text>
-                                                                        <Text style={styles.contactPosition}>{e.jobRole}</Text>
-                                                                    </View>
-                                                                </View>
-                                                            </TouchableOpacity>
-                                                        )
-                                                    })
-                                                        :
-                                                        searchResult?.map((e, i) => {
-                                                            return (
-                                                                <TouchableOpacity key={i} style={styles.contactsShowContainer} onPress={() => setSeletedContact([...seletedContact, e])
-                                                                }>
-                                                                    {/* <TouchableOpacity style={{ width: 18, height: 18, borderRadius: 80, borderColor: "#CECECF", borderWidth: 2, }}>
-                                                            </TouchableOpacity> */}
-                                                                    <View style={styles.contactData}>
-                                                                        <View>
-                                                                            <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
-                                                                        </View>
-                                                                        <View style={styles.contactNameData}>
-                                                                            <Text style={styles.contactName}>{e.fullName}</Text>
-                                                                            <Text style={styles.contactPosition}>{e.jobRole}</Text>
-                                                                        </View>
-                                                                    </View>
-                                                                </TouchableOpacity>
-                                                            )
-                                                        })
-                                                }
-                                            </ScrollView>
-                                        </View>
+                            <BlurView intensity={40} tint="light" style={styles.TextArea}>
+                                <Text style={styles.detailText} numberOfLines={readMore == false ? 4 : 1000}>
+                                    {event?.discription}
+                                </Text>
+                                {
+                                    event?.discription.length > 250 ?
+                                        <ReadMoreBtn />
+                                        : null
+                                }
+                            </BlurView>
+                            <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
+                                <View style={styles.userDetail}>
+                                    <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+                                        {
+                                            event?.photos?.map((e, i) => {
+                                                return (
+                                                    <TouchableOpacity key={i} style={styles.imageContainer} onPress={() => {
+                                                        setFilePath(e);
+                                                        checkFileRef.current.open()
+                                                    }}>
+                                                        <Image source={{ uri: `https://drive.google.com/uc?export=view&id=${e}` }} style={styles.images} />
+                                                    </TouchableOpacity>
+                                                )
+                                            })
+                                        }
                                     </ScrollView>
                                 </View>
-                            </RBSheet>
-                        </ScrollView>
-                        :
-                        <ScrollView showsVerticalScrollIndicator={false} refreshControl={
-                            <RefreshControl
-                                refreshing={refreshing}
-                                onRefresh={onRefresh}
-                            />
-                        }>
-
-                            <View style={styles.chargesContainer}>
-                                <SelectDropdown
-                                    data={seletedContact}
-                                    onSelect={(selectedItem, index) => {
-                                        const teamMemberDetail = {
-                                            _id: selectedItem._id,
-                                            fullName: selectedItem.fullName,
-                                            jobRole: selectedItem.jobRole,
-                                            profileImage: selectedItem.profileImage
+                            </BlurView>
+                            <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
+                                <View style={styles.userDetail}>
+                                    <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+                                        {
+                                            event.files?.map((e, i) => {
+                                                return (
+                                                    <TouchableOpacity key={i} style={styles.fileContainer} onPress={() => {
+                                                        setFilePath(e);
+                                                        checkFileRef.current.open()
+                                                    }}>
+                                                        <MaterialCommunityIcons name="file-pdf-box" size={27} color="white" />
+                                                        <Text style={styles.fileView}>VIEW</Text>
+                                                    </TouchableOpacity>
+                                                )
+                                            })
                                         }
-                                        setSelectedTeamMember([teamMemberDetail])
-                                    }}
-                                    buttonTextAfterSelection={(selectedItem, index) => {
-                                        return selectedItem.fullName
-                                    }}
-                                    rowTextForSelection={(item, index) => {
-                                        return item
-                                    }}
-                                    dropdownStyle={{ height: 'auto', paddingVertical: 20, borderRadius: 10 }}
-                                    rowStyle={{ height: 'auto', paddingVertical: 14 }}
-                                    renderCustomizedRowChild={(e, i) => {
-                                        console.log(e, i);
-                                        return (
-                                            <View style={styles.selectedTeamMember}>
-                                                <View style={styles.contactData}>
-                                                    <View>
-                                                        <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
-                                                    </View>
-                                                    <View style={styles.contactNameData}>
-                                                        <Text style={styles.contactName}>{e.fullName}</Text>
-                                                        <Text style={styles.contactPosition}>{e.jobRole}</Text>
-                                                    </View>
-                                                </View>
-                                            </View>
-                                        )
-                                    }}
-                                    defaultButtonText="Select Team Member   "
-                                    buttonStyle={{ backgroundColor: "white", width: 300, borderRadius: 10 }}
-                                />
-                                <View style={styles.chargesInputContainer}>
-                                    <TextInput onChangeText={(text) => setCharges(text)} keyboardType='number-pad' placeholder='Enter Price' style={styles.chargesInput} placeholderTextColor="#fff" />
+                                    </ScrollView>
                                 </View>
-                                <View>
-                                    <TouchableOpacity style={styles.doneChargesBtn} onPress={async () => {
-                                        selectedTeamMember[0].price = charges
-                                        selectedTeamMember[0].status = "Awating"
-                                        await setSelectedTeamMember(...selectedTeamMember)
-                                        await addTeamMember()
+                            </BlurView>
+                            <Text style={styles.teamMemberTitle}>Team Members</Text>
+                            {
+                                event.team[0] == undefined ?
+                                    <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
+                                        <View style={styles.teamContainer}>
+                                            <Text style={styles.teamGuideText}>There is no team member for now. Add a member</Text>
+                                            <TouchableOpacity style={styles.teamAddBtnWithoutTeam} onPress={() => contactRef.current.open()}>
+                                                <AntDesign name="pluscircleo" size={24} color="#ED5424" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </BlurView>
+                                    :
+                                    <BlurView intensity={40} tint="light" style={styles.teamMainContainer}>
+                                        <View style={styles.teamContainer}>
+                                            <View style={styles.teamMembers}>
+                                                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+                                                    {
+                                                        event.team?.map((e, i) => {
+                                                            return (
+                                                                <View key={i} style={styles.teamMember}>
+                                                                    <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
+                                                                    <Text style={styles.teamMemberName}>{e.fullName}</Text>
+                                                                    <Text style={styles.teamMemberCharges}>{e.price}</Text>
+                                                                    {/* <Text style={{ color: "white", fontWeight: '500', fontSize: 13, opacity: 1, marginTop: -2 }}>PAID</Text> */}
+                                                                </View>
+                                                            )
+                                                        })
+                                                    }
+
+                                                </ScrollView>
+                                            </View>
+                                            <TouchableOpacity style={styles.teamAddBtn} onPress={() => contactRef.current.open()}>
+                                                <AntDesign name="pluscircleo" size={24} color="#ED5424" />
+                                            </TouchableOpacity>
+                                        </View>
+                                        <View>
+                                            <TouchableOpacity style={styles.editTeamMember} onPress={() => navigation.navigate("Team")}>
+                                                <Text style={styles.editTeamMemberText}>Edit Team</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    </BlurView>
+                            }
+
+                            <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
+                                <Image source={{ uri: state.user.profileImage }} style={styles.creatorProfileImage} />
+                                <View style={styles.userDetail}>
+                                    <Text style={styles.creatorLine}>You created the event</Text>
+                                    <Text style={styles.creatorName}>{event.admin == user._id ? user.fullName : null}</Text>
+                                </View>
+                            </BlurView>
+                        </View>
+                    </View>
+                    <RBSheet
+                        animationType={"slide"}
+                        closeOnDragDown={true}
+                        dragFromTopOnly={true}
+                        ref={filterRef}
+                        height={200}
+                        openDuration={250}
+                        closeDuration={250}
+                        customStyles={{
+                            wrapper: {
+                                backgroundColor: "transparent"
+                            },
+                            draggableIcon: {
+                                marginTop: -10
+                            },
+                            container: {
+                                padding: 20
+                            }
+                        }}
+                    >
+                        <View>
+                            <TouchableOpacity style={styles.listViewBtn} onPress={() => {
+                                state.selectedEvent = event
+                                navigation.navigate("EditEvent")
+                                filterRef.current.close()
+                            }}>
+                                <Text style={styles.listViewBtnText}>Edit</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.listViewBtn} onPress={() => {
+                                deleteEvent()
+                                filterRef.current.close()
+                            }}>
+                                <Text style={styles.listViewDeleteBtnText}>Delete</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </RBSheet>
+                    <RBSheet
+                        animationType={"slide"}
+                        closeOnDragDown={true}
+                        dragFromTopOnly={true}
+                        ref={checkFileRef}
+                        height={600}
+                        openDuration={250}
+                        closeDuration={250}
+                        customStyles={{
+                            wrapper: {
+                                backgroundColor: "transparent"
+                            },
+                            draggableIcon: {
+                                marginTop: -10
+                            },
+                            container: {
+                                padding: 20
+                            }
+                        }}
+                    >
+                        <WebView
+                            style={styles.container}
+                            source={{ uri: `https://drive.google.com/file/d/${filePath}/view` }}
+                        />
+                    </RBSheet>
+                    <RBSheet
+                        animationType={"slide"}
+                        closeOnDragDown={true}
+                        dragFromTopOnly={true}
+                        ref={contactRef}
+                        height={700}
+                        openDuration={250}
+                        closeDuration={250}
+                        customStyles={{
+                            wrapper: {
+                                backgroundColor: "transparent"
+                            },
+                            draggableIcon: {
+                                marginTop: -10
+                            },
+                            container: {
+                                padding: 20
+                            }
+                        }}
+                    >
+                        <View style={styles.contactsContainer}>
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                <View style={styles.contactsTitleContainer}>
+                                    <Text style={styles.contactTitle}>Select contacts</Text>
+                                    <TouchableOpacity style={styles.contactSelectBtn} onPress={async () => {
+                                        state.selectedContact = seletedContact
+                                        await navigation.navigate("Charges")
+                                        contactRef.current.close()
                                     }}>
-                                        <Text style={styles.doneChargesBtnText}>Done</Text>
+                                        <Text style={styles.contactSelectBtnText}>Next</Text>
                                     </TouchableOpacity>
                                 </View>
-                            </View>
-                        </ScrollView>
-                }
+                                <View>
+                                    <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+                                        {
+                                            seletedContact.map((e, i) => {
+                                                return (
+                                                    <View key={i} style={styles.contactProfileContainer}>
+                                                        <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
+                                                        <Text style={styles.contactName}>{e.fullName}</Text>
+                                                    </View>
+                                                )
+                                            })
+                                        }
+
+                                    </ScrollView>
+                                </View>
+                                <View>
+                                    <View style={styles.contactSearchContainer}>
+                                        <AntDesign name="search1" size={24} color="#797979" />
+                                        <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Job Roles' style={styles.contactSearchInput} placeholderTextColor="#797979" />
+                                    </View>
+                                </View>
+                                <View>
+                                    <ScrollView showsVerticalScrollIndicator={false}>
+                                        {
+                                            searchResult !== undefined ? adminFilter.map((e, i) => {
+                                                return (
+                                                    <TouchableOpacity key={i} style={styles.contactsShowContainer} onPress={() => setSeletedContact([...seletedContact, e])
+                                                    }>
+                                                        {/* <TouchableOpacity style={{ width: 18, height: 18, borderRadius: 80, borderColor: "#CECECF", borderWidth: 2, }}>
+                                                            </TouchableOpacity> */}
+                                                        <View style={styles.contactData}>
+                                                            <View>
+                                                                <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
+                                                            </View>
+                                                            <View style={styles.contactNameData}>
+                                                                <Text style={styles.contactName}>{e.fullName}</Text>
+                                                                <Text style={styles.contactPosition}>{e.jobRole}</Text>
+                                                            </View>
+                                                        </View>
+                                                    </TouchableOpacity>
+                                                )
+                                            })
+                                                :
+                                                searchResult?.map((e, i) => {
+                                                    return (
+                                                        <TouchableOpacity key={i} style={styles.contactsShowContainer} onPress={() => setSeletedContact([...seletedContact, e])
+                                                        }>
+                                                            {/* <TouchableOpacity style={{ width: 18, height: 18, borderRadius: 80, borderColor: "#CECECF", borderWidth: 2, }}>
+                                                            </TouchableOpacity> */}
+                                                            <View style={styles.contactData}>
+                                                                <View>
+                                                                    <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
+                                                                </View>
+                                                                <View style={styles.contactNameData}>
+                                                                    <Text style={styles.contactName}>{e.fullName}</Text>
+                                                                    <Text style={styles.contactPosition}>{e.jobRole}</Text>
+                                                                </View>
+                                                            </View>
+                                                        </TouchableOpacity>
+                                                    )
+                                                })
+                                        }
+                                    </ScrollView>
+                                </View>
+                            </ScrollView>
+                        </View>
+                    </RBSheet>
+                </ScrollView>
 
 
             </ImageBackground>
@@ -534,7 +448,7 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 18,
         fontWeight: '700',
-        marginLeft: 5
+        marginLeft: 5, width: 230
     },
     location: {
         color: "white",

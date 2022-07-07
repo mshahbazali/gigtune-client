@@ -1,19 +1,51 @@
-import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useRef } from 'react'
+import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, RefreshControl, TouchableOpacity, TextInput } from 'react-native'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { BlurView } from 'expo-blur';
 import { Ionicons, Entypo, FontAwesome, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
 import RBSheet from "react-native-raw-bottom-sheet";
 import { useSelector } from 'react-redux';
+import axios from 'axios';
+import { Api } from '../../Config/Api'
+import JWT from 'expo-jwt';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+const wait = (timeout) => {
+  return new Promise(resolve => setTimeout(resolve, timeout));
+}
 export default function Index({ navigation }) {
+  const [refreshing, setRefreshing] = useState(false);
   const state = useSelector(state => state)
   const contactRef = useRef();
   const optionRef = useRef();
-  const arr = [1, 2, 3, 4, 5, 6, 7]
+  const [seletedContact, setSeletedContact] = useState([])
+  const [users, setUsers] = useState()
+  const [adminId, setAdminId] = useState()
   const event = state.selectedEvent
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    wait(2000).then(() => setRefreshing(false));
+  }, []);
+  const getAdminId = async () => {
+    try {
+      const jsonValue = await AsyncStorage.getItem('token')
+      return jsonValue != null ? setAdminId(JWT.decode(JSON.parse(jsonValue).token, "secret_gigtune").id) : null;
+    } catch (e) { }
+  }
+  useEffect(() => {
+    getAdminId()
+    axios.get(`${Api}/user/allusers`).then((res) => {
+      setUsers(res.data.users);
+    }).catch((err) => { })
+  }, [refreshing])
+  const adminFilter = users?.filter((e) => e._id !== adminId);
   return (
     <View style={styles.container}>
       <ImageBackground source={require('../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView showsVerticalScrollIndicator={false} refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }>
           <View style={styles.contentContainer}>
             <View style={styles.topNavContainer}>
               <TouchableOpacity onPress={() => navigation.navigate("Event")}>
@@ -83,8 +115,9 @@ export default function Index({ navigation }) {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.contactsTitleContainer}>
                   <Text style={styles.contactTitle}>Select contacts</Text>
-                  <TouchableOpacity style={styles.contactSelectBtn} onPress={() => {
-                    setAddCharge(true)
+                  <TouchableOpacity style={styles.contactSelectBtn} onPress={async () => {
+                    state.selectedContact = seletedContact
+                    await navigation.navigate("Charges")
                     contactRef.current.close()
                   }}>
                     <Text style={styles.contactSelectBtnText}>Next</Text>
@@ -93,11 +126,11 @@ export default function Index({ navigation }) {
                 <View>
                   <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                     {
-                      arr.map((e, i) => {
+                      seletedContact.map((e, i) => {
                         return (
                           <View key={i} style={styles.contactProfileContainer}>
-                            <Image source={require("../../Assets/Images/team.png")} style={styles.contactImage} />
-                            <Text style={styles.contactName}>John</Text>
+                            <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
+                            <Text style={styles.contactName}>{e.fullName}</Text>
                           </View>
                         )
                       })
@@ -108,24 +141,31 @@ export default function Index({ navigation }) {
                 <View>
                   <View style={styles.contactSearchContainer}>
                     <AntDesign name="search1" size={24} color="#797979" />
-                    <TextInput placeholder='Search Job Roles' style={styles.contactSearchInput} placeholderTextColor="#797979" />
+                    <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Job Roles' style={styles.contactSearchInput} placeholderTextColor="#797979" />
                   </View>
                 </View>
                 <View>
                   <ScrollView showsVerticalScrollIndicator={false}>
-                    <TouchableOpacity style={styles.contactsShowContainer}>
-                      <TouchableOpacity style={{ width: 18, height: 18, borderRadius: 80, borderColor: "#CECECF", borderWidth: 2, }}>
-                      </TouchableOpacity>
-                      <View style={styles.contactData}>
-                        <View>
-                          <Image source={require("../../Assets/Images/team.png")} style={styles.contactImage} />
-                        </View>
-                        <View style={styles.contactNameData}>
-                          <Text style={styles.contactName}>Adam Erickson</Text>
-                          <Text style={styles.contactPosition}>Manager</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
+                    {
+                      adminFilter?.map((e, i) => {
+                        return (
+                          <TouchableOpacity key={i} style={styles.contactsShowContainer} onPress={() => setSeletedContact([...seletedContact, e])
+                          }>
+                            {/* <TouchableOpacity style={{ width: 18, height: 18, borderRadius: 80, borderColor: "#CECECF", borderWidth: 2, }}>
+                                                            </TouchableOpacity> */}
+                            <View style={styles.contactData}>
+                              <View>
+                                <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
+                              </View>
+                              <View style={styles.contactNameData}>
+                                <Text style={styles.contactName}>{e.fullName}</Text>
+                                <Text style={styles.contactPosition}>{e.jobRole}</Text>
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                        )
+                      })
+                    }
                   </ScrollView>
                 </View>
               </ScrollView>

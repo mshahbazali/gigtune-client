@@ -1,19 +1,68 @@
-import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useRef } from 'react'
+import { View, Image, StyleSheet, RefreshControl, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { BlurView } from 'expo-blur';
 import { Ionicons, Octicons, FontAwesome, AntDesign } from '@expo/vector-icons';
 import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
 import RBSheet from "react-native-raw-bottom-sheet";
-
+import { Api } from '../../../Config/Api';
+import axios from 'axios';
+import { useSelector } from 'react-redux';
+const wait = (timeout) => {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+}
 export default function Index({ navigation }) {
+    const [refreshing, setRefreshing] = useState(false);
+    const state = useSelector(state => state)
     const filterRef = useRef();
-    const arr = [1, 2, 3, 4, 5, 6, 7]
+    const [todaySuggestions, setTodaySuggestions] = useState([])
+    const [yesterdaySuggestions, setYesterdaySuggestions] = useState([])
     const [listView, setListView] = useState(false);
-    const currentDate = new Date().toISOString().slice(0, 10);
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        wait(2000).then(() => setRefreshing(false));
+    }, []);
+    const suggestion = state.user?.suggestions?.filter((e) => e.status == "Awating")
+    const today = new Date().toISOString().slice(0, 10);
+    const todayFilter = suggestion?.filter((e) => e.date == today)
+    const todaySuggestionsIds = []
+    for (let i = 0; i < todayFilter?.length; i++) {
+        todaySuggestionsIds.push(todayFilter[i].eventId)
+    }
+    const yesterday = new Date();
+    const previous = new Date(yesterday.getTime());
+    previous.setDate(yesterday.getDate() - 1);
+    const yesterdayDate = previous.toISOString().slice(0, 10)
+    const yesterdayFilter = suggestion?.filter((e) => e.date == yesterdayDate)
+    const yesterdaySuggestionsIds = []
+    for (let i = 0; i < yesterdayFilter?.length; i++) {
+        yesterdaySuggestionsIds.push(yesterdayFilter[i].eventId)
+    }
+    useEffect(() => {
+        axios.post(`${Api}/suggestions/`, { suggestions: todaySuggestionsIds }, {
+            headers: {
+                token: state.token
+            }
+        }).then((res) => {
+            setTodaySuggestions(res.data.suggestions);
+        }).catch(() => { })
+        // Yesterday request 
+        axios.post(`${Api}/suggestions/`, { suggestions: yesterdaySuggestionsIds }, {
+            headers: {
+                token: state.token
+            }
+        }).then((res) => {
+            setYesterdaySuggestions(res.data.suggestions);
+        }).catch(() => { })
+    }, [refreshing])
     return (
         <View style={styles.container}>
             <View style={styles.background}>
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView showsVerticalScrollIndicator={false} refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                    />
+                }>
                     <View style={styles.contentContainer}>
                         <View style={styles.topBarContainer}>
                             <View>
@@ -34,26 +83,27 @@ export default function Index({ navigation }) {
                         <BlurView intensity={40} tint="light" style={styles.eventListConatinerOnlyListView}>
                             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                                 {
-                                    arr.map((e, i) => {
+                                    todaySuggestions?.map((e, i) => {
+                                        const todayChargesFilter = e?.team?.filter(e => e.id === state.user._id)
                                         return (
-                                            <TouchableOpacity key={i} style={styles.eventList} onPress={() => navigation.navigate("SuggestionsDetail")}>
+                                            <TouchableOpacity key={i} style={styles.eventList} onPress={() => {
+                                                state.selectedSuggestions = e
+                                                navigation.navigate("SuggestionsDetail")
+                                            }}>
                                                 <View>
-                                                    <Text style={styles.eventListTitle}>Jacob and Emma’s Wedding</Text>
+                                                    <Text style={styles.eventListTitle}>{e.title}</Text>
                                                 </View>
                                                 <View style={styles.eventListBottomLine}>
-                                                    <View>
-                                                        <Image source={require("../../../Assets/Images/team.png")} style={styles.eventListBottomLineTeamImage} />
-                                                    </View>
                                                     <View style={styles.eventListBottomLineCalandar}>
                                                         <FontAwesome name="calendar" size={18} color="white" />
-                                                        <Text style={styles.eventListBottomLineCalandarText}>18 Jun</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
                                                     </View>
                                                     <View style={styles.eventListBottomLineCalandar}>
                                                         <Octicons name="location" size={18} color="white" />
-                                                        <Text style={styles.eventListBottomLineCalandarText}>Location</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
                                                     </View>
                                                     <View>
-                                                        <Text style={styles.eventListBottomLineCalandarText}>$50</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{`$${todayChargesFilter[0].price}`}</Text>
                                                     </View>
                                                 </View>
                                             </TouchableOpacity>
@@ -70,26 +120,30 @@ export default function Index({ navigation }) {
                         <BlurView intensity={40} tint="light" style={styles.eventListConatinerOnlyListView}>
                             <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                                 {
-                                    arr.map((e, i) => {
+                                    yesterdaySuggestions?.map((e, i) => {
+                                        const yesterdayChargesFilter = e?.team?.filter(e => e.id === state.user._id)
                                         return (
-                                            <TouchableOpacity key={i} style={styles.eventList} onPress={() => navigation.navigate("SuggestionsDetail")}>
+                                            <TouchableOpacity key={i} style={styles.eventList} onPress={() => {
+                                                state.selectedSuggestions = e
+                                                navigation.navigate("SuggestionsDetail")
+                                            }}>
                                                 <View>
-                                                    <Text style={styles.eventListTitle}>Jacob and Emma’s Wedding</Text>
+                                                    <Text style={styles.eventListTitle}>{e.title}</Text>
                                                 </View>
                                                 <View style={styles.eventListBottomLine}>
-                                                    <View>
+                                                    {/* <View>
                                                         <Image source={require("../../../Assets/Images/team.png")} style={styles.eventListBottomLineTeamImage} />
-                                                    </View>
+                                                    </View> */}
                                                     <View style={styles.eventListBottomLineCalandar}>
                                                         <FontAwesome name="calendar" size={18} color="white" />
-                                                        <Text style={styles.eventListBottomLineCalandarText}>18 Jun</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
                                                     </View>
                                                     <View style={styles.eventListBottomLineCalandar}>
                                                         <Octicons name="location" size={18} color="white" />
-                                                        <Text style={styles.eventListBottomLineCalandarText}>Location</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
                                                     </View>
                                                     <View>
-                                                        <Text style={styles.eventListBottomLineCalandarText}>$50</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{`$${yesterdayChargesFilter[0].price}`}</Text>
                                                     </View>
                                                 </View>
                                             </TouchableOpacity>
@@ -104,7 +158,7 @@ export default function Index({ navigation }) {
                     animationType={"slide"}
                     closeOnDragDown={true}
                     dragFromTopOnly={true}
-                    onOpen={(e) => { console.log(e) }}
+                    onOpen={(e) => { }}
                     ref={filterRef}
                     height={200}
                     openDuration={250}
