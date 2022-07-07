@@ -7,7 +7,15 @@ import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-root-toast';
 import { Api } from '../../../Config/Api'
-
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -22,10 +30,39 @@ export default function Index({ navigation }) {
   const [industry, setIndustry] = useState();
   const [jobRole, setJobRole] = useState();
   const [discription, setDiscription] = useState();
-  const [photos, setPhotos] = useState()
+  const [notificationToken, setNotificationToken] = useState()
   const [profileImage, setProfileImage] = useState();
   const industriesRefs = useRef();
   const jonRoleRefs = useRef();
+  async function registerForPushNotificationsAsync() {
+    let token;
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for push notification!');
+        return;
+      }
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log(token);
+    } else {
+      alert('Must use physical device for Push Notifications');
+    }
+
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+    return token;
+  }
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
@@ -108,6 +145,7 @@ export default function Index({ navigation }) {
   useEffect(() => {
     setIndustries(allIndustries)
     setJobRoles(allJobRole)
+    registerForPushNotificationsAsync().then(token => setNotificationToken(token));
   }, [])
   const induestrySearch = (text) => {
     const searchedIndustry = industries.filter(data =>
@@ -142,7 +180,8 @@ export default function Index({ navigation }) {
         address,
         discription,
         jobRole,
-        industry
+        industry,
+        notificationToken
       }
       if (fullName == undefined) {
         Toast.show('Enter Full Name', {

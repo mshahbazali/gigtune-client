@@ -6,22 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "plugins": [
-      [
-        "expo-image-picker",
-        {
-          "photosPermission": "Gigtune accesses your photos to let you share them with your friends."
-        }
-      ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Gigtune to access your photos.",
-          "savePhotosPermission": "Allow Gigtune to save photos.",
-          "isAccessMediaLocationEnabled": true
-        }
-      ]
-    ],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",

@@ -9,7 +9,6 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { Api } from '../../../Config/Api';
 import JWT from 'expo-jwt';
-
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -47,8 +46,6 @@ export default function Index({ navigation }) {
   for (let i = 0; i < suggestionFilter?.length; i++) {
     suggestionArray.push(suggestionFilter[i].eventId)
   }
-
-
   useEffect(() => {
     getToken()
     getAdminId()
@@ -94,11 +91,6 @@ export default function Index({ navigation }) {
       setApproveSuggestions(res.data.suggestions);
     }).catch(() => { })
   }, [refreshing])
-
-
-
-
-
   const adminFilter = events?.filter((e) => e.admin == adminId);
   const eventFilter = adminFilter?.filter((e) => e.date == (selectDate == undefined ? currentDate : selectDate));
   const approveSuggestionDate = approveSuggestions?.filter((e) => e.date == (selectDate == undefined ? currentDate : selectDate));

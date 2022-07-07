@@ -1,5 +1,5 @@
-import { View, Text } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import { View, Platform } from 'react-native'
+import React, { useEffect, useState, useRef } from 'react'
 import { Splash, SignUp, CreateEvent, Event } from './src/Screens'
 import { Bottom, AuthenticationNavigation } from "./src/Config/Navigation"
 import 'react-native-gesture-handler';
@@ -8,7 +8,9 @@ import { Provider } from 'react-redux';
 import { RootSiblingParent } from 'react-native-root-siblings';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import store from './src/Store'
+
 export default function App() {
+
   const [splash, setSplash] = useState(false);
   const [token, setToken] = useState()
   const getToken = async () => {
@@ -22,7 +24,10 @@ export default function App() {
     setTimeout(() => {
       setSplash(true)
     }, 3000)
+
   }, [])
+
+
   // AsyncStorage.removeItem('token')
   return (
     <Provider store={store}>
@@ -43,3 +48,5 @@ export default function App() {
 
   )
 }
+
+
