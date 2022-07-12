@@ -39,7 +39,30 @@ export default function Index({ navigation }) {
     wait(2000).then(() => setRefreshing(false));
   }, []);
   const checkFileRef = useRef();
+  let pushToken = []
 
+  for (let i = 0; i < state?.selectedEvent?.team.length; i++) {
+    pushToken.push(state?.selectedEvent.team[i].notificationToken)
+  }
+  async function sendPushNotification() {
+    const message = {
+      to: pushToken,
+      sound: 'default',
+      title: 'New Update!',
+      body: `A new update for ${state.selectedEvent.title}`,
+      data: { someData: 'goes here' },
+    };
+
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    });
+  }
   useEffect(() => {
     if (state?.selectedEvent?.title !== undefined) {
       setTitle(state.selectedEvent.title)
@@ -76,7 +99,7 @@ export default function Index({ navigation }) {
         })
         .catch(function (error) {
           setRefreshing(false)
-          Toast.show("Check Internet Connection", {
+          Toast.show("Try Again", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
             shadow: true,
@@ -114,7 +137,7 @@ export default function Index({ navigation }) {
         })
         .catch(function (error) {
           setRefreshing(false)
-          Toast.show("Check Internet Connection", {
+          Toast.show("Try Again", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
             shadow: true,
@@ -198,6 +221,7 @@ export default function Index({ navigation }) {
       });
     }
     else {
+      await sendPushNotification()
       axios.post(`${Api}/event/update`, eventUpdateData, {
         headers: {
           token: state.token
@@ -208,7 +232,7 @@ export default function Index({ navigation }) {
           await navigation.navigate("Event")
         })
         .catch(function (error) {
-          Toast.show("Check Internet Connection", {
+          Toast.show("Try Again", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
             shadow: true,
@@ -219,7 +243,6 @@ export default function Index({ navigation }) {
         });
     }
   }
-
   return (
     <View style={styles.container}>
       <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
@@ -367,19 +390,15 @@ export default function Index({ navigation }) {
                   <Text style={styles.industriesBoxTitle}>Pick a location</Text>
                 </View>
                 <View style={styles.industriesSearchBox}>
-
-                  {/* <AntDesign name="search1" size={24} color="#797979" /> */}
-                  {/* <TextInput placeholder='Search location' style={styles.industriesSearchInput} placeholderTextColor="#797979" /> */}
                   <Placesearch
-                    apikey={"AIzaSyBJTIYwTIrkgzHZ5s6sshI5uxks4by7D3g"} // required *
+                    apikey={"AIzaSyBJTIYwTIrkgzHZ5s6sshI5uxks4by7D3g"}
                     SelectedAddress={(data) => {
                       locationRef.current.close()
                       setLocation(`${data.structured_formatting.main_text} ${data.structured_formatting.secondary_text}`)
                     }
-                    } // required *
-                    // onClose={(data) => console.log(data)}
-                    coordinate={true} //optional
-                    removeImg={true} //optional
+                    }
+                    coordinate={true}
+                    removeImg={true}
                     StatusBarColor={"white"}
                     textInput={{
                       backgroundColor: "white",

@@ -8,6 +8,8 @@ import axios from 'axios';
 import { Api } from '../../Config/Api'
 import JWT from 'expo-jwt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-root-toast';
+
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -19,6 +21,8 @@ export default function Index({ navigation }) {
   const [seletedContact, setSeletedContact] = useState([])
   const [users, setUsers] = useState()
   const [adminId, setAdminId] = useState()
+  const [selectTeamMember, setSelectTeamMember] = useState();
+  const [selectedSuggestions, setSelectedSuggestions] = useState()
   const event = state.selectedEvent
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -30,6 +34,16 @@ export default function Index({ navigation }) {
       return jsonValue != null ? setAdminId(JWT.decode(JSON.parse(jsonValue).token, "secret_gigtune").id) : null;
     } catch (e) { }
   }
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      getAdminId()
+      axios.get(`${Api}/user/allusers`).then((res) => {
+        setUsers(res.data.users);
+      }).catch((err) => { })
+    });
+
+    return unsubscribe;
+  }, [navigation])
   useEffect(() => {
     getAdminId()
     axios.get(`${Api}/user/allusers`).then((res) => {
@@ -68,12 +82,26 @@ export default function Index({ navigation }) {
                         </View>
                       </View>
                       <View style={{ marginRight: 10 }}>
-                        <View style={{ backgroundColor: "#14AE5C", padding: 6, borderRadius: 10, justifyContent: 'center', alignItems: 'center', }}>
+                        <View style={{ backgroundColor: e.status == "Approve" ? "#14AE5C" : e.status == "Reject" ? "red" : "#784222", padding: 6, borderRadius: 10, justifyContent: 'center', alignItems: 'center', }}>
                           <Text style={styles.teamMemberPosition}>{e.status}</Text>
                         </View>
                       </View>
                       <View>
-                        <TouchableOpacity onPress={() => optionRef.current.open()} style={{ marginLeft: 10 }}>
+                        <TouchableOpacity onPress={async () => {
+                          setRefreshing(true)
+                          await axios.post(`${Api}/user/admin`, { adminId: e.id }, {
+                            headers: {
+                              token: state.token
+                            }
+                          }).then(async (res) => {
+                            setRefreshing(false)
+                            setSelectedSuggestions(res.data.user.suggestions)
+                          }).catch(() => { })
+                          setSelectTeamMember(e)
+                          state.updateCharges = true
+                          state.selectedTeamMemberIndex = i
+                          optionRef.current.open()
+                        }} style={{ marginLeft: 10 }}>
                           <Entypo name="dots-three-vertical" size={24} color="white" />
                         </TouchableOpacity>
                         <Text style={styles.teamMemberPosition}>{`$${e.price}`}</Text>
@@ -94,7 +122,6 @@ export default function Index({ navigation }) {
             animationType={"slide"}
             closeOnDragDown={true}
             dragFromTopOnly={true}
-            onOpen={(e) => { console.log(e) }}
             ref={contactRef}
             height={700}
             openDuration={250}
@@ -116,6 +143,7 @@ export default function Index({ navigation }) {
                 <View style={styles.contactsTitleContainer}>
                   <Text style={styles.contactTitle}>Select contacts</Text>
                   <TouchableOpacity style={styles.contactSelectBtn} onPress={async () => {
+                    state.updateCharges = false
                     state.selectedContact = seletedContact
                     await navigation.navigate("Charges")
                     contactRef.current.close()
@@ -141,7 +169,7 @@ export default function Index({ navigation }) {
                 <View>
                   <View style={styles.contactSearchContainer}>
                     <AntDesign name="search1" size={24} color="#797979" />
-                    <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Job Roles' style={styles.contactSearchInput} placeholderTextColor="#797979" />
+                    <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Contacts' style={styles.contactSearchInput} placeholderTextColor="#797979" />
                   </View>
                 </View>
                 <View>
@@ -194,12 +222,41 @@ export default function Index({ navigation }) {
           >
             <View>
               <TouchableOpacity style={styles.listViewBtn} onPress={() => {
+                state.selectedContact = [selectTeamMember]
+                navigation.navigate("Charges")
                 optionRef.current.close()
               }}>
                 <Text style={styles.listViewBtnText}>Change Price</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.listViewBtn} onPress={() => {
-                optionRef.current.close()
+              <TouchableOpacity style={styles.listViewBtn} onPress={async () => {
+                setRefreshing(true)
+                const deleteMember = await event.team.filter((e) => e.id !== selectTeamMember.id)
+                const deleteSuggestions = await selectedSuggestions?.filter((e) => e.eventId !== event._id)
+                const memberData = {
+                  admin: adminId,
+                  _id: event._id,
+                  team: deleteMember,
+                  deleteMemberId: selectTeamMember.id,
+                  deleteSuggestions: deleteSuggestions
+                }
+                await axios.post(`${Api}/team/delete`, memberData, {
+                  headers: {
+                    token: state.token
+                  }
+                }).then(async (res) => {
+                  event.team = deleteMember
+                  setRefreshing(false)
+                  await optionRef.current.close()
+                  Toast.show(res.data.message, {
+                    duration: Toast.durations.LONG,
+                    position: Toast.positions.TOP,
+                    shadow: true,
+                    animation: true,
+                    hideOnPress: true,
+                    delay: 0,
+                  });
+                }).catch(() => { })
+
               }}>
                 <Text style={styles.listViewDeleteBtnText}>Delete</Text>
               </TouchableOpacity>

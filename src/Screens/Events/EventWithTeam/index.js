@@ -36,6 +36,15 @@ export default function Index({ navigation }) {
         } catch (e) { }
     }
     useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            getAdminId()
+            axios.get(`${Api}/user/allusers`).then((res) => {
+                setUsers(res.data.users);
+            }).catch((err) => { })
+        });
+        return unsubscribe;
+    }, [navigation])
+    useEffect(() => {
         getAdminId()
         axios.get(`${Api}/user/allusers`).then((res) => {
             setUsers(res.data.users);
@@ -132,7 +141,7 @@ export default function Index({ navigation }) {
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
                                         {
-                                            event.files?.map((e, i) => {
+                                            event?.files?.map((e, i) => {
                                                 return (
                                                     <TouchableOpacity key={i} style={styles.fileContainer} onPress={() => {
                                                         setFilePath(e);
@@ -167,9 +176,9 @@ export default function Index({ navigation }) {
                                                         event.team?.map((e, i) => {
                                                             return (
                                                                 <View key={i} style={styles.teamMember}>
-                                                                    <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
-                                                                    <Text style={styles.teamMemberName}>{e.fullName}</Text>
-                                                                    <Text style={styles.teamMemberCharges}>{e.price}</Text>
+                                                                    <Image source={{ uri: e?.profileImage }} style={styles.creatorProfileImage} />
+                                                                    <Text style={styles.teamMemberName}>{e?.fullName}</Text>
+                                                                    <Text style={styles.teamMemberCharges}>{e?.price}</Text>
                                                                     {/* <Text style={{ color: "white", fontWeight: '500', fontSize: 13, opacity: 1, marginTop: -2 }}>PAID</Text> */}
                                                                 </View>
                                                             )
@@ -194,7 +203,7 @@ export default function Index({ navigation }) {
                                 <Image source={{ uri: state.user.profileImage }} style={styles.creatorProfileImage} />
                                 <View style={styles.userDetail}>
                                     <Text style={styles.creatorLine}>You created the event</Text>
-                                    <Text style={styles.creatorName}>{event.admin == user._id ? user.fullName : null}</Text>
+                                    <Text style={styles.creatorName}>{event?.admin == user?._id ? user?.fullName : null}</Text>
                                 </View>
                             </BlurView>
                         </View>
@@ -285,6 +294,7 @@ export default function Index({ navigation }) {
                                 <View style={styles.contactsTitleContainer}>
                                     <Text style={styles.contactTitle}>Select contacts</Text>
                                     <TouchableOpacity style={styles.contactSelectBtn} onPress={async () => {
+                                        state.updateCharges = false
                                         state.selectedContact = seletedContact
                                         await navigation.navigate("Charges")
                                         contactRef.current.close()
@@ -310,7 +320,7 @@ export default function Index({ navigation }) {
                                 <View>
                                     <View style={styles.contactSearchContainer}>
                                         <AntDesign name="search1" size={24} color="#797979" />
-                                        <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Job Roles' style={styles.contactSearchInput} placeholderTextColor="#797979" />
+                                        <TextInput onChangeText={(text) => setSearchQuery(text)} placeholder='Search Contacts' style={styles.contactSearchInput} placeholderTextColor="#797979" />
                                     </View>
                                 </View>
                                 <View>
@@ -324,11 +334,11 @@ export default function Index({ navigation }) {
                                                             </TouchableOpacity> */}
                                                         <View style={styles.contactData}>
                                                             <View>
-                                                                <Image source={{ uri: e.profileImage }} style={styles.contactImage} />
+                                                                <Image source={{ uri: e?.profileImage }} style={styles.contactImage} />
                                                             </View>
                                                             <View style={styles.contactNameData}>
-                                                                <Text style={styles.contactName}>{e.fullName}</Text>
-                                                                <Text style={styles.contactPosition}>{e.jobRole}</Text>
+                                                                <Text style={styles.contactName}>{e?.fullName}</Text>
+                                                                <Text style={styles.contactPosition}>{e?.jobRole}</Text>
                                                             </View>
                                                         </View>
                                                     </TouchableOpacity>

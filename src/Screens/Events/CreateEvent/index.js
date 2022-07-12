@@ -34,12 +34,23 @@ export default function Index({ navigation }) {
   const [photos, setPhotos] = useState([])
   const [files, setFiles] = useState([])
   const [filePath, setFilePath] = useState()
+  const [seventLimit, setEventLimit] = useState()
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
   }, []);
-  const checkFileRef = useRef();
+  const currentDate = new Date().toISOString().slice(0, 10);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      const user = state.user
+      const events = state.event;
+      const eventLimit = events?.filter((e) => e.admin == user._id && e.createdAt == currentDate)
+      setEventLimit(eventLimit?.length)
+    });
 
+    return unsubscribe;
+  }, [navigation])
+  const checkFileRef = useRef();
   const selectImages = async () => {
     let result = await ImagePicker.launchImageLibraryAsync();
     if (!result.cancelled) {
@@ -66,7 +77,7 @@ export default function Index({ navigation }) {
         })
         .catch(function (error) {
           setRefreshing(false)
-          Toast.show("Check Internet Connection", {
+          Toast.show("Try Again", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
             shadow: true,
@@ -104,7 +115,7 @@ export default function Index({ navigation }) {
         })
         .catch(function (error) {
           setRefreshing(false)
-          Toast.show("Check Internet Connection", {
+          Toast.show("Try Again", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
             shadow: true,
@@ -124,7 +135,8 @@ export default function Index({ navigation }) {
       location,
       discription,
       photos,
-      files
+      files,
+      createdAt: currentDate
     }
     if (title == undefined) {
       setRefreshing(false)
@@ -210,7 +222,7 @@ export default function Index({ navigation }) {
         })
         .catch(function (error) {
           setRefreshing(false)
-          Toast.show("Check Internet Connection", {
+          Toast.show("Try Again", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
             shadow: true,
@@ -222,8 +234,6 @@ export default function Index({ navigation }) {
     }
 
   }
-
-
   return (
     <View style={styles.container}>
       <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
@@ -341,7 +351,19 @@ export default function Index({ navigation }) {
               </BlurView>
             </View>
             <View style={styles.btnContainer}>
-              <TouchableOpacity style={styles.createEventBtn} onPress={createEvent}>
+              <TouchableOpacity style={styles.createEventBtn} onPress={() => {
+                seventLimit < 5 ?
+                  createEvent()
+                  :
+                  Toast.show("Your reached today event creation limit", {
+                    duration: Toast.durations.LONG,
+                    position: Toast.positions.TOP,
+                    shadow: true,
+                    animation: true,
+                    hideOnPress: true,
+                    delay: 0,
+                  });
+              }}>
                 <Text style={styles.createEventBtnText}>Create Event</Text>
               </TouchableOpacity>
             </View>

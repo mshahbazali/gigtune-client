@@ -1,20 +1,53 @@
-import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useRef } from 'react'
+import { View, Image, RefreshControl, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
+import React, { useState, useEffect, useCallback } from 'react'
 import { BlurView } from 'expo-blur';
 import { Ionicons, Entypo, FontAwesome, MaterialCommunityIcons, EvilIcons } from '@expo/vector-icons';
-import RNDateTimePicker from '@react-native-community/datetimepicker';
-import RBSheet from "react-native-raw-bottom-sheet";
 import { useSelector } from 'react-redux';
+import axios from 'axios'
+import { Api } from '../../../Config/Api';
+const wait = (timeout) => {
+    return new Promise(resolve => setTimeout(resolve, timeout));
+}
 export default function Index({ navigation }) {
+    const [refreshing, setRefreshing] = useState(false);
     const state = useSelector(state => state)
-    const [datePicker, setDatePicker] = useState(false)
-    const [date, setDate] = useState("date");
-    const datePickerFun = (event, text) => {
-        setDate(text.toString().slice(4, 15))
-        setDatePicker(false)
-    }
+    const [creator, setCreator] = useState({})
     const approveSuggestion = state.selectedApproveSuggestion
-    const arr = [1, 2, 3, 4, 5, 6, 7]
+    const onRefresh = useCallback(() => {
+        setRefreshing(true);
+        wait(2000).then(() => setRefreshing(false));
+    }, []);
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            axios.post(`${Api}/user/admin`, { adminId: approveSuggestion.admin }, {
+                headers: {
+                    token: state.token
+                }
+            }).then((res) => {
+                console.log(res.data)
+                setCreator({
+                    fullName: res.data.user.fullName,
+                    profileImage: res.data.user.profileImage
+                })
+            }).catch(() => { })
+        });
+
+        return unsubscribe;
+
+    }, [navigation])
+    useEffect(() => {
+        axios.post(`${Api}/user/admin`, { adminId: approveSuggestion.admin }, {
+            headers: {
+                token: state.token
+            }
+        }).then((res) => {
+            console.log(res.data)
+            setCreator({
+                fullName: res.data.user.fullName,
+                profileImage: res.data.user.profileImage
+            })
+        }).catch(() => { })
+    }, [refreshing])
     const [readMore, setReadMore] = useState(false)
     const ReadMoreBtn = () => {
         return (
@@ -23,29 +56,16 @@ export default function Index({ navigation }) {
             </TouchableOpacity>
         )
     }
-    // async function sendPushNotification(expoPushToken) {
-    //     const message = {
-    //       to: expoPushToken,
-    //       sound: 'default',
-    //       title: 'Original Title',
-    //       body: 'And here is the body!',
-    //       data: { someData: 'goes here' },
-    //     };
-
-    //     await fetch('https://exp.host/--/api/v2/push/send', {
-    //       method: 'POST',
-    //       headers: {
-    //         Accept: 'application/json',
-    //         'Accept-encoding': 'gzip, deflate',
-    //         'Content-Type': 'application/json',
-    //       },
-    //       body: JSON.stringify(message),
-    //     });
-    //   }
+    console.log(creator);
     return (
         <View style={styles.container}>
             <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView showsVerticalScrollIndicator={false} refreshControl={
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                    />
+                }>
                     <View style={styles.contentContainer}>
                         <TouchableOpacity style={styles.backIconContainer} onPress={() => navigation.navigate("Event")}>
                             <Ionicons name="arrow-back-sharp" size={33} color="white" />
@@ -137,10 +157,10 @@ export default function Index({ navigation }) {
                                 </View>
                             </BlurView>
                             <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
-                                <Image source={require("../../../Assets/Images/team.png")} style={styles.creatorProfileImage} />
+                                <Image source={{ uri: creator?.profileImage }} style={styles.creatorProfileImage} />
                                 <View style={styles.userDetail}>
                                     <Text style={styles.creatorLine}>created the event</Text>
-                                    <Text style={styles.creatorName}>John Doe</Text>
+                                    <Text style={styles.creatorName}>{creator?.fullName}</Text>
                                 </View>
                             </BlurView>
                         </View>

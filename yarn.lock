@@ -7166,6 +7166,13 @@
   "resolved" "https://registry.npmjs.org/react-native-select-dropdown/-/react-native-select-dropdown-2.0.4.tgz"
   "version" "2.0.4"
 
+"react-native-select-multiple@^2.1.0":
+  "integrity" "sha512-sJepp/RNeLorR+/bEUVuWnVEX5klpyf0MHWKy0SN1MIty4vcKhL9ZhPM6Zydm5p6qHeFcvA7Q87FzO1JTdaqkw=="
+  "resolved" "https://registry.npmjs.org/react-native-select-multiple/-/react-native-select-multiple-2.1.0.tgz"
+  "version" "2.1.0"
+  dependencies:
+    "prop-types" "^15.7.2"
+
 "react-native-swipe-gestures@^1.0.5":
   "integrity" "sha512-Ns7Bn9H/Tyw278+5SQx9oAblDZ7JixyzeOczcBK8dipQk2pD7Djkcfnf1nB/8RErAmMLL9iXgW0QHqiII8AhKw=="
   "resolved" "https://registry.npmjs.org/react-native-swipe-gestures/-/react-native-swipe-gestures-1.0.5.tgz"

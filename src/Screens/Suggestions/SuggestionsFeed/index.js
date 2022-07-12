@@ -38,6 +38,27 @@ export default function Index({ navigation }) {
         yesterdaySuggestionsIds.push(yesterdayFilter[i].eventId)
     }
     useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            axios.post(`${Api}/suggestions/`, { suggestions: todaySuggestionsIds }, {
+                headers: {
+                    token: state.token
+                }
+            }).then((res) => {
+                setTodaySuggestions(res.data.suggestions);
+            }).catch(() => { })
+            // Yesterday request 
+            axios.post(`${Api}/suggestions/`, { suggestions: yesterdaySuggestionsIds }, {
+                headers: {
+                    token: state.token
+                }
+            }).then((res) => {
+                setYesterdaySuggestions(res.data.suggestions);
+            }).catch(() => { })
+        });
+
+        return unsubscribe;
+    }, [navigation])
+    useEffect(() => {
         axios.post(`${Api}/suggestions/`, { suggestions: todaySuggestionsIds }, {
             headers: {
                 token: state.token
@@ -103,7 +124,7 @@ export default function Index({ navigation }) {
                                                         <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
                                                     </View>
                                                     <View>
-                                                        <Text style={styles.eventListBottomLineCalandarText}>{`$${todayChargesFilter[0].price}`}</Text>
+                                                        <Text style={styles.eventListBottomLineCalandarText}>{`$${todayChargesFilter[0]?.price}`}</Text>
                                                     </View>
                                                 </View>
                                             </TouchableOpacity>

@@ -6,6 +6,7 @@ import axios from 'axios';
 import SelectDropdown from 'react-native-select-dropdown'
 import JWT from 'expo-jwt';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Toast from 'react-native-root-toast';
 
 const wait = (timeout) => {
     return new Promise(resolve => setTimeout(resolve, timeout));
@@ -28,25 +29,73 @@ export default function Index({ navigation }) {
             return jsonValue != null ? setAdminId(JWT.decode(JSON.parse(jsonValue).token, "secret_gigtune").id) : null;
         } catch (e) { }
     }
+    async function sendPushNotification() {
+        const message = {
+            to: selectedTeamMember[0].notificationToken,
+            sound: 'default',
+            title: 'New Suggestions!',
+            body: `You received a new job offer from ${state.user.fullName}`,
+            data: { someData: 'goes here' },
+        };
+
+        await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Accept-encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message),
+        });
+    }
     useEffect(() => {
         getAdminId()
         setSelectedContact(state.selectedContact)
     }, [refreshing])
     useEffect(() => {
-        setSelectedContact(state.selectedContact)
-    }, [])
+        const unsubscribe = navigation.addListener('focus', () => {
+            getAdminId()
+            setSelectedContact(state.selectedContact)
+        });
+
+        return unsubscribe;
+    }, [navigation])
     const event = state.selectedEvent
-    const addTeamMember = () => {
+    const addTeamMember = async () => {
+        await sendPushNotification()
         const memberData = {
             admin: adminId,
             _id: event._id,
-            team: selectedTeamMember
+            team: selectedTeamMember,
+            userId: selectedTeamMember[0].id
         }
         axios.post(`${Api}/team/add`, memberData, {
             headers: {
                 token: state.token
             }
-        }).then((res) => {
+        }).then(async (res) => {
+            Toast.show(res.data.message, {
+                duration: Toast.durations.LONG,
+                position: Toast.positions.TOP,
+                shadow: true,
+                animation: true,
+                hideOnPress: true,
+                delay: 0,
+            });
+        }).catch(() => { })
+    }
+    const updateCharges = async () => {
+        const memberData = {
+            admin: adminId,
+            _id: event._id,
+            team: selectedTeamMember,
+            teamMemberIndex: state.selectedTeamMemberIndex
+        }
+        axios.post(`${Api}/team/update/charges`, memberData, {
+            headers: {
+                token: state.token
+            }
+        }).then(async (res) => {
             Toast.show(res.data.message, {
                 duration: Toast.durations.LONG,
                 position: Toast.positions.TOP,
@@ -75,7 +124,8 @@ export default function Index({ navigation }) {
                                     id: selectedItem._id,
                                     fullName: selectedItem.fullName,
                                     jobRole: selectedItem.jobRole,
-                                    profileImage: selectedItem.profileImage
+                                    profileImage: selectedItem.profileImage,
+                                    notificationToken: selectedItem.notificationToken
                                 }
                                 setSelectedTeamMember([teamMemberDetail])
                                 setContactIndex(index)
@@ -113,9 +163,13 @@ export default function Index({ navigation }) {
                             <TouchableOpacity style={styles.doneChargesBtn} onPress={async () => {
                                 if (selectedContact.length > 0) {
                                     selectedTeamMember[0].price = charges
-                                    selectedTeamMember[0].status = "Awating"
+                                    state.updateCharges == false ?
+                                        selectedTeamMember[0].status = "Awating"
+                                        : selectedTeamMember[0].status = event.team[state.selectedTeamMemberIndex].status
                                     await setSelectedTeamMember(...selectedTeamMember)
-                                    await addTeamMember()
+                                    state.updateCharges == false ?
+                                        await addTeamMember()
+                                        : await updateCharges()
                                     selectedContact[contactIndex] = null
                                     const filter = selectedContact.filter((e) => e !== null)
                                     await setSelectedContact(filter)
@@ -125,7 +179,7 @@ export default function Index({ navigation }) {
                                 }
 
                             }}>
-                                <Text style={styles.doneChargesBtnText}>Done</Text>
+                                <Text style={styles.doneChargesBtnText}>{state.updateCharges == false ? "Done" : "Update"}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

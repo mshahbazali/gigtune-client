@@ -16,7 +16,6 @@ export default function Index({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const state = useSelector(state => state)
   const filterRef = useRef();
-  const arr = [1, 2, 3, 4, 5, 6, 7]
   const [events, setEvents] = useState([])
   const [listView, setListView] = useState(false);
   const currentDate = new Date().toISOString().slice(0, 10);
@@ -47,32 +46,38 @@ export default function Index({ navigation }) {
     suggestionArray.push(suggestionFilter[i].eventId)
   }
   useEffect(() => {
-    getToken()
-    getAdminId()
-    axios.get(`${Api}/event/`).then((res) => {
-      setEvents(res.data.events);
-    }).catch((err) => {
-    })
-    axios.get(`${Api}/user/me/`, {
-      headers: {
-        token: state.token
-      }
-    }).then((res) => {
-      state.user = res.data
-    }).catch((err) => {
-    })
-    axios.post(`${Api}/suggestions/`, { suggestions: suggestionArray }, {
-      headers: {
-        token: state.token
-      }
-    }).then((res) => {
-      setApproveSuggestions(res.data.suggestions);
-    }).catch(() => { })
-  }, [])
+    const unsubscribe = navigation.addListener('focus', () => {
+      getToken()
+      getAdminId()
+      axios.get(`${Api}/event/`).then((res) => {
+        setEvents(res.data.events);
+      }).catch((err) => {
+      })
+      axios.get(`${Api}/user/me/`, {
+        headers: {
+          token: state.token
+        }
+      }).then((res) => {
+        state.user = res.data
+      }).catch((err) => {
+      })
+      axios.post(`${Api}/suggestions/`, { suggestions: suggestionArray }, {
+        headers: {
+          token: state.token
+        }
+      }).then((res) => {
+        setApproveSuggestions(res.data.suggestions);
+      }).catch(() => { })
+    });
+
+    return unsubscribe;
+
+  }, [navigation])
   useEffect(() => {
     getToken()
     getAdminId()
     axios.get(`${Api}/event/`).then((res) => {
+      state.event = res.data.events
       setEvents(res.data.events);
     }).catch((err) => {
     })
@@ -153,8 +158,9 @@ export default function Index({ navigation }) {
   const months = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
-  console.log(adminFilter);
-  console.log(approveSuggestions);
+  let [totalCharges, setTotalCharges] = useState(0)
+  const filterMin = events.filter((e) => e)
+  console.log(filterMin);
   return (
     <View style={styles.container}>
       <View style={styles.background}>
@@ -167,7 +173,7 @@ export default function Index({ navigation }) {
           <View style={styles.contentContainer}>
             <View style={styles.topBarContainer}>
               <View>
-                <Text style={styles.totalAmount}>Total $11,500</Text>
+                <Text style={styles.totalAmount}>{`Total $${totalCharges}`}</Text>
               </View>
               <View>
                 <TouchableOpacity style={styles.filterBtn} onPress={() => filterRef.current.open()}>
@@ -191,6 +197,8 @@ export default function Index({ navigation }) {
                   <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                     {
                       searchFilter.map((e, i) => {
+                        let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
+                        totalCharges += charges
                         return (
                           <TouchableOpacity key={i} style={styles.eventList} >
                             <View>
@@ -209,7 +217,7 @@ export default function Index({ navigation }) {
                                 <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
                               </View>
                               <View>
-                                <Text style={styles.eventListBottomLineCalandarText}>$50</Text>
+                                <Text style={styles.eventListBottomLineCalandarText}>{`$${charges}`}</Text>
                               </View>
                             </View>
                           </TouchableOpacity>
@@ -254,6 +262,7 @@ export default function Index({ navigation }) {
                       onDayPress={day => {
                         setToday(new Date(day.timestamp));
                         setSelectDate(day.dateString);
+                        setTotalCharges(totalCharges)
                       }}
                     />
                   </View>
@@ -264,6 +273,8 @@ export default function Index({ navigation }) {
                     <ScrollView style={{ height: 75 }} showsVerticalScrollIndicator={false}>
                       {
                         eventFilter?.map((e, i) => {
+                          let charges = e?.team?.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
+                          totalCharges += charges
                           return (
                             <TouchableOpacity key={i} style={styles.eventList} onPress={() => {
                               state.selectedEvent = e
@@ -286,7 +297,7 @@ export default function Index({ navigation }) {
                                   <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
                                 </View>
                                 <View>
-                                  <Text style={styles.eventListBottomLineCalandarText}>$50</Text>
+                                  <Text style={styles.eventListBottomLineCalandarText}>{`$${charges}`}</Text>
                                 </View>
                               </View>
                             </TouchableOpacity>
@@ -300,7 +311,7 @@ export default function Index({ navigation }) {
                           const charges = e?.team?.filter(e => e.id === state.user._id)
                           return (
                             <TouchableOpacity key={i} style={styles.eventList} onPress={async () => {
-                              state.approveSugesstionCharges = charges[0].price
+                              state.approveSugesstionCharges = charges[0]?.price
                               state.selectedApproveSuggestion = e
                               await navigation.navigate("SuggestionsApprove")
                             }}>
@@ -320,7 +331,7 @@ export default function Index({ navigation }) {
                                   <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 14)}...</Text>
                                 </View>
                                 <View>
-                                  <Text style={styles.eventListBottomLineCalandarText}>{`$${charges[0].price}`}</Text>
+                                  <Text style={styles.eventListBottomLineCalandarText}>{`$${charges[0]?.price}`}</Text>
                                 </View>
                               </View>
                             </TouchableOpacity>
@@ -340,6 +351,8 @@ export default function Index({ navigation }) {
                     <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                       {
                         eventFilter.map((e, i) => {
+                          let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
+                          totalCharges += charges
                           return (
                             <TouchableOpacity key={i} style={styles.eventList} >
                               <View>
@@ -358,7 +371,7 @@ export default function Index({ navigation }) {
                                   <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
                                 </View>
                                 <View>
-                                  <Text style={styles.eventListBottomLineCalandarText}>$50</Text>
+                                  <Text style={styles.eventListBottomLineCalandarText}>{`$${charges}`}</Text>
                                 </View>
                               </View>
                             </TouchableOpacity>

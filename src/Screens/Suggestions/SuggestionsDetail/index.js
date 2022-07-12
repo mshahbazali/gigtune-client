@@ -12,17 +12,12 @@ export default function Index({ navigation }) {
     const [refreshing, setRefreshing] = useState(false);
     const state = useSelector(state => state)
     const [adminFilter, setAdminFilter] = useState([])
-    const [datePicker, setDatePicker] = useState(false)
-    const [date, setDate] = useState("date");
+    const [adminNotificationToken, setAdminNotificationToken] = useState();
+    const [creator, setCreator] = useState()
     const onRefresh = useCallback(() => {
         setRefreshing(true);
         wait(2000).then(() => setRefreshing(false));
     }, []);
-    const datePickerFun = (event, text) => {
-        setDate(text.toString().slice(4, 15))
-        setDatePicker(false)
-    }
-    const locationRef = useRef();
     const [readMore, setReadMore] = useState(false)
     const ReadMoreBtn = () => {
         return (
@@ -33,8 +28,64 @@ export default function Index({ navigation }) {
     }
     const suggestions = state.selectedSuggestions
     useEffect(() => {
-        setAdminFilter(suggestions?.team?.filter((e) => e.id == state.user._id))
-    }, [suggestions]);
+        const unsubscribe = navigation.addListener('focus', () => {
+            axios.post(`${Api}/user/admin`, { adminId: suggestions.admin }, {
+                headers: {
+                    token: state.token
+                }
+            }).then((res) => {
+                setAdminNotificationToken(res.data.user.notificationToken);
+                setCreator({
+                    fullName: res.data.user.fullName,
+                    profileImage: res.data.user.profileImage
+                })
+            }).catch(() => { })
+        });
+
+        return unsubscribe;
+
+    }, [navigation])
+    useEffect(() => {
+        axios.post(`${Api}/user/admin`, { adminId: suggestions.admin }, {
+            headers: {
+                token: state.token
+            }
+        }).then((res) => {
+            setAdminNotificationToken(res.data.user.notificationToken);
+            setCreator({
+                fullName: res.data.user.fullName,
+                profileImage: res.data.user.profileImage
+            })
+        }).catch(() => { })
+
+    }, [refreshing])
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('focus', () => {
+            setAdminFilter(suggestions?.team?.filter((e) => e.id == state.user._id))
+        });
+
+        return unsubscribe;
+    }, [navigation]);
+    async function sendPushNotification(status) {
+        const message = {
+            to: adminNotificationToken,
+            sound: 'default',
+            title: 'Confirmation!',
+            body: `${state.user.fullName} ${status} ${suggestions.title}`,
+            data: { someData: 'goes here' },
+        };
+
+        await fetch('https://exp.host/--/api/v2/push/send', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Accept-encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(message),
+        });
+    }
+
     const approveRequest = async () => {
         const index = suggestions?.team?.map(function (e) {
             return e.id;
@@ -45,13 +96,15 @@ export default function Index({ navigation }) {
         }).indexOf(suggestions._id)
         state.user.suggestions[userStatusIndex].status = "Approve"
         suggestions.team[index].status = "Approve"
+        await sendPushNotification("confirmed")
         await axios.post(`${Api}/suggestions/approve`, { userId: state.user._id, user: state.user, eventId: suggestions._id, event: suggestions }, {
             headers: {
                 token: state.token
             }
         }).then((res) => {
             navigation.navigate("SuggestionsApproveDone")
-        }).catch(() => { })
+        }).catch((err) => { })
+        console.log("index");
     }
     const rejectRequest = async () => {
         const index = suggestions?.team?.map(function (e) {
@@ -63,6 +116,7 @@ export default function Index({ navigation }) {
         }).indexOf(suggestions._id)
         state.user.suggestions[userStatusIndex].status = "Reject"
         suggestions.team[index].status = "Reject"
+        await sendPushNotification("rejected")
         await axios.post(`${Api}/suggestions/reject`, { userId: state.user._id, user: state.user, eventId: suggestions._id, event: suggestions }, {
             headers: {
                 token: state.token
@@ -89,7 +143,7 @@ export default function Index({ navigation }) {
                         </View>
                         <View style={styles.topBox}>
                             <Text style={styles.topBoxFirstText}>You get</Text>
-                            <Text style={styles.topBoxSecondText}>{`$${adminFilter[0]?.price}`}</Text>
+                            <Text style={styles.topBoxSecondText}>{`$${adminFilter[0]?.price} `}</Text>
                         </View>
                         <View>
                             <Text style={styles.eventTitle}>{suggestions.title}</Text>
@@ -129,13 +183,13 @@ export default function Index({ navigation }) {
                                                 return (
                                                     <TouchableOpacity key={i} style={styles.imageContainer}>
                                                         <Image source={{ uri: `https://drive.google.com/uc?export=view&id=${e}` }} style={styles.images} />
-                                                    </TouchableOpacity>
+                                                    </TouchableOpacity >
                                                 )
                                             })
                                         }
                                     </ScrollView>
-                                </View>
-                            </BlurView>
+                                </View >
+                            </BlurView >
                             <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
                                 <View style={styles.userDetail}>
                                     <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
@@ -171,13 +225,13 @@ export default function Index({ navigation }) {
                                 </View>
                             </BlurView>
                             <BlurView intensity={40} tint="light" style={styles.eventCreatorDetail}>
-                                <Image source={require("../../../Assets/Images/team.png")} style={styles.creatorProfileImage} />
+                                <Image source={{ uri: creator?.profileImage }} style={styles.creatorProfileImage} />
                                 <View style={styles.userDetail}>
                                     <Text style={styles.creatorLine}>created the event</Text>
-                                    <Text style={styles.creatorName}>John Doe</Text>
+                                    <Text style={styles.creatorName}>{creator?.fullName}</Text>
                                 </View>
                             </BlurView>
-                        </View>
+                        </View >
                         <View style={styles.btnContainer}>
                             <TouchableOpacity style={styles.rejectEventBtn} onPress={rejectRequest}>
                                 <Text style={styles.rejectEventBtnText}>Reject</Text>
@@ -186,10 +240,10 @@ export default function Index({ navigation }) {
                                 <Text style={styles.approveEventBtnText}>Accept</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </View >
 
-                </ScrollView>
-            </ImageBackground>
+                </ScrollView >
+            </ImageBackground >
         </View >
     )
 }

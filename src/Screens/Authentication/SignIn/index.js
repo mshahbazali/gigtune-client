@@ -1,28 +1,69 @@
 import { View, Image, StyleSheet, RefreshControl, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { BlurView } from 'expo-blur';
 import axios from 'axios';
 import Toast from 'react-native-root-toast';
 import { Api } from '../../../Config/Api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
 export default function Index({ navigation }) {
   const [identifier, setIdentifier] = useState()
-  const [password, setPassword] = useState()
+  const [password, setPassword] = useState();
+  const [notificationToken, setNotificationToken] = useState();
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
   }, []);
+  async function registerForPushNotificationsAsync() {
+    let token;
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for push notification!');
+        return;
+      }
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+      console.log(token);
+    } else {
+      alert('Must use physical device for Push Notifications');
+    }
 
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+    return token;
+  }
+  useEffect(() => {
+    registerForPushNotificationsAsync().then(token => setNotificationToken(token));
+  }, [])
   const signIn = () => {
     setRefreshing(true)
     const userData = {
       identifier,
-      password
+      password,
+      notificationToken
     }
     if (identifier == undefined) {
       setRefreshing(false)

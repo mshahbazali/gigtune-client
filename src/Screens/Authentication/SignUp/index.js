@@ -7,15 +7,8 @@ import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
 import Toast from 'react-native-root-toast';
 import { Api } from '../../../Config/Api'
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+import SelectMultiple from 'react-native-select-multiple'
+
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -27,46 +20,18 @@ export default function Index({ navigation }) {
   const [password, setPassword] = useState()
   const [confirmPassword, setConfirmPassword] = useState()
   const [address, setAddress] = useState();
-  const [industry, setIndustry] = useState();
-  const [jobRole, setJobRole] = useState();
+  const [businessName, setBusinessName] = useState();
+  const [jobRole, setJobRole] = useState([]);
   const [discription, setDiscription] = useState();
-  const [notificationToken, setNotificationToken] = useState()
   const [profileImage, setProfileImage] = useState();
-  const industriesRefs = useRef();
+  const [businessProfile, setBusinessProfile] = useState(false)
   const jonRoleRefs = useRef();
-  async function registerForPushNotificationsAsync() {
-    let token;
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        alert('Failed to get push token for push notification!');
-        return;
-      }
-      token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log(token);
-    } else {
-      alert('Must use physical device for Push Notifications');
-    }
 
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
-    }
-    return token;
-  }
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
   }, []);
+  let filterJobRole = [...new Set(jobRole)];
   const selectProfileImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync();
     if (!result.cancelled) {
@@ -104,71 +69,6 @@ export default function Index({ navigation }) {
 
     }
   }
-  const [industries, setIndustries] = useState();
-  const [jobRoles, setJobRoles] = useState();
-  const allIndustries = [
-    {
-      title: "Music",
-      image: require("../../../Assets/Images/music.png")
-    },
-    {
-      title: "Cinema",
-      image: require("../../../Assets/Images/cinema.png")
-    },
-    {
-      title: "Theater",
-      image: require("../../../Assets/Images/theater.png")
-    },
-    {
-      title: "Dancer",
-      image: require("../../../Assets/Images/dancer.png")
-    },
-  ]
-  const allJobRole = [
-    {
-      title: "Bandleader",
-      image: require("../../../Assets/Images/bandleader.png")
-    },
-    {
-      title: "D.J",
-      image: require("../../../Assets/Images/dj.png")
-    },
-    {
-      title: "Conductor",
-      image: require("../../../Assets/Images/conductor.png")
-    },
-    {
-      title: "Guitarist",
-      image: require("../../../Assets/Images/guitarist.png")
-    },
-  ]
-  useEffect(() => {
-    setIndustries(allIndustries)
-    setJobRoles(allJobRole)
-    registerForPushNotificationsAsync().then(token => setNotificationToken(token));
-  }, [])
-  const induestrySearch = (text) => {
-    const searchedIndustry = industries.filter(data =>
-      data.title == text
-    );
-    if (searchedIndustry[0] === undefined) {
-      setIndustries(industries)
-    }
-    else {
-      setIndustries(searchedIndustry)
-    }
-  }
-  const jobRoleSearch = (text) => {
-    const searchedJobRole = jobRoles.filter(data =>
-      data.title == text
-    );
-    if (searchedJobRole[0] === undefined) {
-      setJobRoles(jobRoles)
-    }
-    else {
-      setJobRoles(searchedJobRole)
-    }
-  }
   const signUp = async () => {
     if (password == confirmPassword) {
       const userData = {
@@ -179,9 +79,8 @@ export default function Index({ navigation }) {
         password,
         address,
         discription,
-        jobRole,
-        industry,
-        notificationToken
+        jobRole: filterJobRole,
+        businessName
       }
       if (fullName == undefined) {
         Toast.show('Enter Full Name', {
@@ -233,8 +132,8 @@ export default function Index({ navigation }) {
           delay: 0,
         });
       }
-      else if (industry == undefined) {
-        Toast.show('Select Industry', {
+      else if (businessName == undefined) {
+        Toast.show('Select businessName', {
           duration: Toast.durations.LONG,
           position: Toast.positions.TOP,
           shadow: true,
@@ -293,6 +192,112 @@ export default function Index({ navigation }) {
     }
 
   }
+
+  const musicInstrument = ['Singer', 'Bass guitar', 'Keyboard, Piano',
+    'Drum',
+    'Guitar',
+    'Violin',
+    'Trumpet',
+    'Drummer',
+    'Percussion',
+    'Trombone',
+    'Darbuka',
+    'Djembe',
+    'Clarinet',
+    'Buzuki',
+    'Harp',
+    'Flute',
+    'Cello',
+  ]
+  const equipment = ['Amplification & lighting', 'Stage worker', 'Soundman',
+    'Inflatables',
+    'Balloons',
+    'Flower arranging',
+    'Screens',
+    'Electrical engineer',
+    'Construction engineer',
+    'Equipment for events'
+  ]
+  const photographer = ['photographer', 'Photographer assistant', 'Lighting technician',
+    'Magnet photographer',
+    'Video',
+    'Video assistant',
+    'Screens',
+    'Electrical engineer',
+    'Construction engineer',
+    'Equipment for events'
+  ]
+  const management = ['Event Planner', 'Seating arrangements and arrival confirmations']
+  const eventServices = ['Band',
+    'D.J',
+    'Choir',
+    'Big band',
+    'Philharmonic',
+    'Venues',
+  ]
+  const entertainment = ['Magician', 'Clown']
+  const cinemaAndTheater = ['Director',
+    'Assistant director',
+    'Choreographer',
+    'Dancer',
+    'Extra',
+    'Actor',
+    'Circus preformer',
+  ]
+  const food = ['Catering',
+    'Shef',
+    'Waiter',
+    'Alcohol, cocktails',
+    'Barman',
+  ]
+  const stylingAndDesign = ['Hair & make up',
+    'Stylist',
+    'Designing tables'
+  ]
+  const transportation = ['Shuttle service',
+    'Driver']
+
+  const [searchJobRole, setSearchJobRole] = useState([])
+  const jobRoleSearch = (text) => {
+    const allItem = [...musicInstrument, ...equipment, ...photographer, ...management, ...eventServices,
+    ...cinemaAndTheater,
+    ...food,
+    ...stylingAndDesign,
+    ...transportation,
+    ]
+    const searchedJobRole = allItem.filter(data =>
+      data == text
+    );
+    if (searchedJobRole[0] === undefined) {
+      setSearchJobRole([undefined])
+    }
+    else {
+      setSearchJobRole(searchedJobRole)
+    }
+  }
+
+
+  const renderLabel = (label, style) => {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ marginLeft: 10 }}>
+          <Text style={style}>{label}</Text>
+        </View>
+      </View>
+    )
+  }
+  const [searchQuery, setSearchQuery] = useState({ searchJobRole: [] })
+  const [musicInstrumentSelected, setMusicInstrumentSelected] = useState({ musicInstrument: [] })
+  const [equipmentSelected, setEquipmentSelected] = useState({ equipment: [] })
+  const [photographerSelected, setPhotographerSelected] = useState({ photographer: [] })
+  const [managementSelected, setManagementSelected] = useState({ management: [] })
+  const [eventServicesSelected, setEventServicesSelected] = useState({ eventServices: [] })
+  const [entertainmentSelected, setEntertainmentSelected] = useState({ entertainment: [] })
+  const [cinemaAndTheaterSelected, setCinemaAndTheaterSelected] = useState({ cinemaAndTheater: [] })
+  const [foodSelected, setFoodSelected] = useState({ food: [] })
+  const [stylingAndDesignSelected, setStylingAndDesignSelected] = useState({ stylingAndDesign: [] })
+  const [transportationSelected, setTransportationSelected] = useState({ transportation: [] })
+  
   return (
     <View style={styles.container}>
       <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
@@ -302,129 +307,98 @@ export default function Index({ navigation }) {
             onRefresh={onRefresh}
           />
         }>
-          <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
-            <View style={styles.backIconContainer}>
-              <Ionicons name="arrow-back-sharp" size={33} color="white" />
-            </View>
-          </TouchableOpacity>
-          <View style={styles.logoContainer}>
-            <Image source={require("../../../Assets/Images/whitelogo.png")} style={styles.logo} />
-          </View>
-          <View style={styles.headingContainer}>
-            <Text style={styles.heading}>Sign Up</Text>
-            <Text style={styles.noteText}>Please, enter your details.</Text>
-          </View>
-          <BlurView intensity={40} tint="light" style={styles.inputContainer}>
-            <TextInput onChangeText={(text) => setFullName(text)} placeholder='Full Name' placeholderTextColor={"#fff"} style={styles.input} />
-          </BlurView>
-          <BlurView intensity={40} tint="light" style={styles.inputContainer}>
-            <TextInput onChangeText={(text) => setEmailAddress(text)} keyboardType="email-address" placeholder='Email Address' placeholderTextColor={"#fff"} style={styles.input} />
-          </BlurView>
-          <BlurView intensity={40} tint="light" style={styles.inputContainer}>
-            <TextInput onChangeText={(text) => setPhoneNumber(text)} keyboardType="number-pad" placeholder='Phone Number' placeholderTextColor={"#fff"} style={styles.input} />
-          </BlurView>
-          <BlurView intensity={40} tint="light" style={styles.inputContainer}>
-            <TextInput onChangeText={(text) => setPassword(text)} keyboardType="visible-password" placeholder='Password' placeholderTextColor={"#fff"} style={styles.input} />
-          </BlurView>
-          <BlurView intensity={40} tint="light" style={styles.inputContainer}>
-            <TextInput onChangeText={(text) => setConfirmPassword(text)} placeholder='Confirm Password' keyboardType="visible-password" placeholderTextColor={"#fff"} style={styles.input} />
-          </BlurView>
-          <BlurView intensity={40} tint="light" style={styles.inputContainer}>
-            <TextInput onChangeText={(text) => setAddress(text)} placeholder='Address' placeholderTextColor={"#fff"} style={styles.input} />
-          </BlurView>
-          <View style={styles.buisnessProfileContainer}>
-            <Text style={styles.buisnessProfileTitle}>Business Profile</Text>
-            <BlurView intensity={40} tint="light" style={styles.buisnessProfileDetailContainer}>
-              <TouchableOpacity onPress={selectProfileImage}>
-                <BlurView intensity={40} tint="light" style={styles.pickBusinessProfile}>
-                  {
-                    profileImage == undefined ?
-                      <MaterialIcons name="camera" size={45} color="#fff" />
-                      :
-                      <Image source={{ uri: profileImage }} style={{ width: 50, height: 50 }} />
-                  }
-                </BlurView>
-              </TouchableOpacity>
-              <View style={styles.userDetail}>
-                <Text style={styles.userName}>{fullName}</Text>
-                <Text style={styles.userPosition}>{jobRole}</Text>
-              </View>
-            </BlurView>
-          </View>
-          <TouchableOpacity onPress={() => industriesRefs.current.open()}>
-            <BlurView intensity={40} tint="light" style={styles.inputIndustryContainer}>
-              <Text style={styles.industryText}>Industry</Text>
-              <AntDesign name="caretdown" size={18} color="white" style={{ marginRight: 20 }} />
-            </BlurView>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => jonRoleRefs.current.open()}>
-            <BlurView intensity={40} tint="light" style={styles.inputJobRoleContainer}>
-              <Text style={styles.industryText}>Job Role</Text>
-              <AntDesign name="caretdown" size={18} color="white" style={{ marginRight: 20 }} />
-            </BlurView>
-          </TouchableOpacity>
-          <BlurView intensity={40} tint="light" style={styles.TextArea}>
-            <TextInput onChangeText={(text) => setDiscription(text)} placeholder='Description & Links' placeholderTextColor={"#fff"} style={styles.TextAreaText} />
-          </BlurView>
-
-          <View style={styles.btnContainer}>
-            <TouchableOpacity style={styles.signInBtn} onPress={signUp}>
-              <Text style={styles.signInBtnText}>Sign Up</Text>
-            </TouchableOpacity>
-          </View>
-          <RBSheet
-            ref={industriesRefs}
-            height={300}
-            openDuration={250}
-            customStyles={{
-              container: {
-                padding: 20
-              }
-            }}
-          >
-            <View>
+          {
+            businessProfile == false ?
               <View>
-                <Text style={styles.industriesBoxTitle}>Industries</Text>
+                <TouchableOpacity onPress={() => navigation.navigate("SignIn")}>
+                  <View style={styles.backIconContainer}>
+                    <Ionicons name="arrow-back-sharp" size={33} color="white" />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.logoContainer}>
+                  <Image source={require("../../../Assets/Images/whitelogo.png")} style={styles.logo} />
+                </View>
+                <View style={styles.headingContainer}>
+                  <Text style={styles.heading}>Sign Up</Text>
+                  <Text style={styles.noteText}>Please, enter your details.</Text>
+                </View>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setFullName(text)} placeholder='Full Name' placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setEmailAddress(text)} keyboardType="email-address" placeholder='Email Address' placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setPhoneNumber(text)} keyboardType="number-pad" placeholder='Phone Number' placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setPassword(text)} keyboardType="visible-password" placeholder='Password' placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setConfirmPassword(text)} placeholder='Confirm Password' keyboardType="visible-password" placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setAddress(text)} placeholder='Address' placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
+                <View style={styles.btnContainer}>
+                  <TouchableOpacity style={styles.nextBtn} onPress={() => setBusinessProfile(true)}>
+                    <Text style={styles.signInBtnText}>Next</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.industriesSearchBox}>
-                <AntDesign name="search1" size={24} color="#797979" />
-                <TextInput onChangeText={induestrySearch} placeholder='Search industries' style={styles.industriesSearchInput} placeholderTextColor="#797979" />
-              </View>
-              <View style={styles.subIndustriesBox}>
-                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                  {
-                    industries == undefined ? allIndustries.map((e, i) => {
-                      return (
-                        <TouchableOpacity key={i} style={styles.subIndustriesBoxItem} onPress={() => {
-                          industriesRefs.current.close()
-                          setIndustry(e.title)
-                        }}>
-                          <Image source={e.image} style={styles.subIndustriesImage} />
-                          <Text style={styles.subIndustriesTitle}>{e.title}</Text>
-                        </TouchableOpacity>
-                      )
-                    })
-                      :
-                      industries.map((e, i) => {
-                        return (
-                          <TouchableOpacity key={i} style={styles.subIndustriesBoxItem} onPress={() => {
-                            industriesRefs.current.close()
-                            setIndustry(e.title)
-                          }}>
-                            <Image source={e.image} style={styles.subIndustriesImage} />
-                            <Text style={styles.subIndustriesTitle}>{e.title}</Text>
-                          </TouchableOpacity>
-                        )
-                      })
-                  }
+              :
+              <View style={styles.buisnessProfileContainer}>
+                <TouchableOpacity onPress={() => setBusinessProfile(false)}>
+                  <View style={styles.backIconContainer}>
+                    <Ionicons name="arrow-back-sharp" size={33} color="white" />
+                  </View>
+                </TouchableOpacity>
+                <View style={styles.logoContainer}>
+                  <Image source={require("../../../Assets/Images/whitelogo.png")} style={styles.logo} />
+                </View>
+                <View style={styles.headingContainer}>
+                  <Text style={styles.heading}>Business Profile</Text>
+                </View>
+                <BlurView intensity={40} tint="light" style={styles.buisnessProfileDetailContainer}>
+                  <TouchableOpacity onPress={selectProfileImage}>
+                    <BlurView intensity={40} tint="light" style={styles.pickBusinessProfile}>
+                      {
+                        profileImage == undefined ?
+                          <MaterialIcons name="camera" size={45} color="#fff" />
+                          :
+                          <Image source={{ uri: profileImage }} style={{ width: 50, height: 50 }} />
+                      }
+                    </BlurView>
+                  </TouchableOpacity>
+                  <View style={styles.userDetail}>
+                    <Text style={styles.userPosition}>Add logo or profile photo</Text>
+                  </View>
+                </BlurView>
+                <BlurView intensity={40} tint="light" style={styles.inputContainer}>
+                  <TextInput onChangeText={(text) => setBusinessName(text)} placeholder='Business name' placeholderTextColor={"#fff"} style={styles.input} />
+                </BlurView>
 
-                </ScrollView>
+                <TouchableOpacity onPress={() => jonRoleRefs.current.open()}>
+                  <BlurView intensity={40} tint="light" style={styles.inputJobRoleContainer}>
+                    <Text style={styles.businessNameText}>Job Role</Text>
+                    <AntDesign name="caretdown" size={18} color="white" style={{ marginRight: 20 }} />
+                  </BlurView>
+                </TouchableOpacity>
+                <BlurView intensity={40} tint="light" style={styles.TextArea}>
+                  <TextInput multiline={true} onChangeText={(text) => setDiscription(text)} placeholder='Description & links - Provide a short description of your services and links - this will help organizers and freelancers choose you!' placeholderTextColor={"#fff"} style={styles.TextAreaText} />
+                </BlurView>
+
+                <View style={styles.btnContainer}>
+                  <TouchableOpacity style={styles.signInBtn} onPress={signUp}>
+                    <Text style={styles.signInBtnText}>Sign Up</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </RBSheet>
+
+          }
           <RBSheet
             ref={jonRoleRefs}
-            height={300}
+            height={600}
             openDuration={250}
             customStyles={{
               container: {
@@ -432,6 +406,7 @@ export default function Index({ navigation }) {
               }
             }}
           >
+
             <View>
               <View>
                 <Text style={styles.industriesBoxTitle}>Job Roles</Text>
@@ -440,40 +415,142 @@ export default function Index({ navigation }) {
                 <AntDesign name="search1" size={24} color="#797979" />
                 <TextInput onChangeText={jobRoleSearch} placeholder='Search Job Roles' style={styles.industriesSearchInput} placeholderTextColor="#797979" />
               </View>
-              <View style={styles.subIndustriesBox}>
-                <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-                  {
-                    jobRoles == undefined ? allJobRole.map((e, i) => {
-                      return (
-                        <TouchableOpacity key={i} style={styles.subIndustriesBoxItem} onPress={() => {
-                          jonRoleRefs.current.close()
-                          setJobRole(e.title)
-                        }}>
-                          <Image source={require("../../../Assets/Images/dj.png")} style={styles.subIndustriesImage} />
-                          <Text style={styles.subIndustriesTitle}>Bandleader</Text>
-                        </TouchableOpacity>
-                      )
-                    })
-                      :
-                      jobRoles.map((e, i) => {
-                        return (
-                          <TouchableOpacity key={i} style={styles.subIndustriesBoxItem} onPress={() => {
-                            jonRoleRefs.current.close()
-                            setJobRole(e.title)
-                          }}>
-                            <Image source={e.image} style={styles.subIndustriesImage} />
-                            <Text style={styles.subIndustriesTitle}>{e.title}</Text>
-                          </TouchableOpacity>
-                        )
-                      })
-                  }
+              {
+                searchJobRole[0] == undefined ?
+                  <View style={styles.itemListContainer}>
+                    <ScrollView nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Music instrument</Text>
+                      </View>
+                      <SelectMultiple
+                        items={musicInstrument}
+                        renderLabel={renderLabel}
+                        selectedItems={musicInstrumentSelected.musicInstrument}
+                        onSelectionsChange={(musicInstrument, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setMusicInstrumentSelected({ musicInstrument })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Equipment</Text>
+                      </View>
+                      <SelectMultiple
+                        items={equipment}
+                        renderLabel={renderLabel}
+                        selectedItems={equipmentSelected.equipment}
+                        onSelectionsChange={(equipment, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setEquipmentSelected({ equipment })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Photographer</Text>
+                      </View>
+                      <SelectMultiple
+                        items={photographer}
+                        renderLabel={renderLabel}
+                        selectedItems={photographerSelected.photographer}
+                        onSelectionsChange={(photographer, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setPhotographerSelected({ photographer })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Management</Text>
+                      </View>
+                      <SelectMultiple
+                        items={management}
+                        renderLabel={renderLabel}
+                        selectedItems={managementSelected.management}
+                        onSelectionsChange={(management, item) => {
+                          setManagementSelected({ management })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Event services</Text>
+                      </View>
+                      <SelectMultiple
+                        items={eventServices}
+                        renderLabel={renderLabel}
+                        selectedItems={eventServicesSelected.eventServices}
+                        onSelectionsChange={(eventServices, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setEventServicesSelected({ eventServices })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Entertainment</Text>
+                      </View>
+                      <SelectMultiple
+                        items={entertainment}
+                        renderLabel={renderLabel}
+                        selectedItems={entertainmentSelected.entertainment}
+                        onSelectionsChange={(entertainment, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setEntertainmentSelected({ entertainment })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Cinema & Theater</Text>
+                      </View>
+                      <SelectMultiple
+                        items={cinemaAndTheater}
+                        renderLabel={renderLabel}
+                        selectedItems={cinemaAndTheaterSelected.cinemaAndTheater}
+                        onSelectionsChange={(cinemaAndTheater, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setCinemaAndTheaterSelected({ cinemaAndTheater })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Food</Text>
+                      </View>
+                      <SelectMultiple
+                        items={food}
+                        renderLabel={renderLabel}
+                        selectedItems={foodSelected.food}
+                        onSelectionsChange={(food, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setFoodSelected({ food })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Styling & Design</Text>
+                      </View>
+                      <SelectMultiple
+                        items={stylingAndDesign}
+                        renderLabel={renderLabel}
+                        selectedItems={stylingAndDesignSelected.stylingAndDesign}
+                        onSelectionsChange={(stylingAndDesign, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setStylingAndDesignSelected({ stylingAndDesign })
+                        }} />
+                      <View style={styles.jobRolesHeading}>
+                        <Text style={styles.jobRolesHeadingText}>Transportation</Text>
+                      </View>
+                      <SelectMultiple
+                        items={transportation}
+                        renderLabel={renderLabel}
+                        selectedItems={transportationSelected.transportation}
+                        onSelectionsChange={(transportation, item) => {
+                          setJobRole([...jobRole, item.label])
+                          setTransportationSelected({ transportation })
+                        }} />
+                    </ScrollView>
+                  </View>
+                  :
+                  <View>
+                    <View style={styles.jobRolesHeading}>
+                      <Text style={styles.jobRolesHeadingText}>Search Result</Text>
+                    </View>
+                    <SelectMultiple
+                      items={searchJobRole}
+                      renderLabel={renderLabel}
+                      selectedItems={searchQuery.searchJobRole}
+                      onSelectionsChange={(searchJobRole, item) => {
+                        setJobRole([...jobRole, item.label])
+                        setSearchQuery({ searchJobRole })
+                      }} />
+                  </View>
+              }
 
-                </ScrollView>
-              </View>
+
             </View>
           </RBSheet>
         </ScrollView>
-      </ImageBackground>
+      </ImageBackground >
     </View >
   )
 }
@@ -533,9 +610,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: "white"
   },
-  buisnessProfileContainer: {
-    marginTop: 18,
-  },
+
   buisnessProfileTitle: {
     color: "white",
     fontSize: 16,
@@ -543,14 +618,13 @@ const styles = StyleSheet.create({
   },
   buisnessProfileDetailContainer: {
     marginTop: 18,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    borderRadius: 10
+    borderRadius: 10, justifyContent: 'center', alignItems: 'center', paddingVertical: 15, marginVertical: 10
   },
   pickBusinessProfile: {
     padding: 10,
-    margin: 10,
-    borderRadius: 10
+    marginBottom: 10,
+    borderRadius: 10,
+
   },
   userDetail: {
     justifyContent: 'center',
@@ -565,7 +639,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '400'
   },
-  inputIndustryContainer: {
+  inputbusinessNameContainer: {
     borderRadius: 10,
     height: 50,
     width: 320,
@@ -575,7 +649,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     flexDirection: 'row'
   },
-  industryText: {
+  businessNameText: {
     textAlign: 'center',
     fontSize: 17,
     fontWeight: '500',
@@ -593,9 +667,10 @@ const styles = StyleSheet.create({
   },
   TextArea: {
     borderRadius: 10,
-    height: 170,
+    height: 200,
     width: 320,
     justifyContent: 'flex-start',
+    alignItems: 'flex-start',
     marginVertical: 10,
     padding: 10,
   },
@@ -603,37 +678,32 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '400',
     color: "white",
-    opacity: 0.8
+    opacity: 0.8,
+    textAlignVertical: 'top'
   },
   btnContainer: {
     marginVertical: 20
+  },
+  nextBtn: {
+    backgroundColor: "#fff",
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderRadius: 30,
+    marginTop: 20
   },
   signInBtn: {
     backgroundColor: "#fff",
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 14,
-    borderRadius: 30
+    borderRadius: 30,
   },
   signInBtnText: {
     color: "#EF4D38",
     fontWeight: '600',
     fontSize: 18,
     fontWeight: '700'
-  },
-  signUpBtn: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 14,
-    borderRadius: 30,
-    marginVertical: 14,
-    borderColor: "#fff",
-    borderWidth: 1
-  },
-  signUpBtnText: {
-    color: "#fff",
-    fontWeight: '600',
-    fontSize: 18,
   },
   industriesBoxTitle: {
     fontSize: 22,
@@ -672,4 +742,13 @@ const styles = StyleSheet.create({
     marginVertical: 6,
     fontWeight: "500"
   },
+  jobRolesHeading: {
+    marginVertical: 10
+  },
+  jobRolesHeadingText: {
+    fontSize: 16
+  },
+  itemListContainer: {
+    marginBottom: 16
+  }
 })

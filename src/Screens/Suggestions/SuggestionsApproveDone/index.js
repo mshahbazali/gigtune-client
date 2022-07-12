@@ -1,9 +1,5 @@
 import { View, Image, StyleSheet, ImageBackground, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
 import React, { useState, useRef } from 'react'
-import { BlurView } from 'expo-blur';
-import { Ionicons, Entypo, FontAwesome, MaterialCommunityIcons, AntDesign } from '@expo/vector-icons';
-import RBSheet from "react-native-raw-bottom-sheet";
-
 export default function Index({ navigation }) {
     return (
         <View style={styles.container}>
@@ -19,7 +15,7 @@ export default function Index({ navigation }) {
                         </View>
                         <View>
                             <TouchableOpacity style={styles.doneBtn} onPress={() => navigation.navigate("Event")}>
-                                <Text style={styles.doneBtnText}>Done</Text>7
+                                <Text style={styles.doneBtnText}>Done</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
