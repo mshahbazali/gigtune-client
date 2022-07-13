@@ -1,14 +1,17 @@
 import { View, Image, StyleSheet, RefreshControl, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native'
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, Key } from 'react'
 import { BlurView } from 'expo-blur';
-import { Octicons, FontAwesome, AntDesign } from '@expo/vector-icons';
-import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
+import { Octicons, FontAwesome, AntDesign, Entypo } from '@expo/vector-icons';
+import { CalendarList } from 'react-native-calendars';
 import RBSheet from "react-native-raw-bottom-sheet";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { Api } from '../../../Config/Api';
 import JWT from 'expo-jwt';
+import SelectDropdown from 'react-native-select-dropdown'
+import RNDateTimePicker from '@react-native-community/datetimepicker';
+
 const wait = (timeout) => {
   return new Promise(resolve => setTimeout(resolve, timeout));
 }
@@ -23,7 +26,9 @@ export default function Index({ navigation }) {
   const [adminId, setAdminId] = useState();
   const [today, setToday] = useState(new Date())
   const [searchQuery, setSearchQuery] = useState('');
-  const [approveSuggestions, setApproveSuggestions] = useState()
+  const [approveSuggestions, setApproveSuggestions] = useState();
+  const [calendarData, setCalendarData] = useState({})
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     wait(2000).then(() => setRefreshing(false));
@@ -44,6 +49,25 @@ export default function Index({ navigation }) {
   const suggestionFilter = state.user.suggestions?.filter((e) => e.status == "Approve");
   for (let i = 0; i < suggestionFilter?.length; i++) {
     suggestionArray.push(suggestionFilter[i].eventId)
+  }
+  let eventTotal = 0
+  let suggestionsTotal = 0
+  let [totalCharges, setTotalCharges] = useState(0);
+  const suggestion = state.user?.suggestions?.filter((e) => e.status == "Awating")
+  const todaySugg = new Date().toISOString().slice(0, 10);
+  const todayFilter = suggestion?.filter((e) => e.date == todaySugg)
+  const todaySuggestionsIds = []
+  for (let i = 0; i < todayFilter?.length; i++) {
+    todaySuggestionsIds.push(todayFilter[i].eventId)
+  }
+  const yesterday = new Date();
+  const previous = new Date(yesterday.getTime());
+  previous.setDate(yesterday.getDate() - 1);
+  const yesterdayDate = previous.toISOString().slice(0, 10)
+  const yesterdayFilter = suggestion?.filter((e) => e.date == yesterdayDate)
+  const yesterdaySuggestionsIds = []
+  for (let i = 0; i < yesterdayFilter?.length; i++) {
+    yesterdaySuggestionsIds.push(yesterdayFilter[i].eventId)
   }
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', () => {
@@ -69,9 +93,24 @@ export default function Index({ navigation }) {
         setApproveSuggestions(res.data.suggestions);
       }).catch(() => { })
     });
-
+    setCalendarData({ month: today.getMonth(), year: today.getFullYear() })
+    axios.post(`${Api}/suggestions/`, { suggestions: todaySuggestionsIds }, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      state.todaySuggestions = res.data.suggestions;
+    }).catch(() => { })
+    // Yesterday request 
+    axios.post(`${Api}/suggestions/`, { suggestions: yesterdaySuggestionsIds }, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      state.yesterdaySuggestions = res.data.suggestions;
+    }).catch(() => { })
+    setTotalCharges(eventTotal + suggestionsTotal)
     return unsubscribe;
-
   }, [navigation])
   useEffect(() => {
     getToken()
@@ -95,6 +134,22 @@ export default function Index({ navigation }) {
     }).then((res) => {
       setApproveSuggestions(res.data.suggestions);
     }).catch(() => { })
+    axios.post(`${Api}/suggestions/`, { suggestions: todaySuggestionsIds }, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      state.todaySuggestions = res.data.suggestions;
+    }).catch(() => { })
+    // Yesterday request 
+    axios.post(`${Api}/suggestions/`, { suggestions: yesterdaySuggestionsIds }, {
+      headers: {
+        token: state.token
+      }
+    }).then((res) => {
+      state.yesterdaySuggestions = res.data.suggestions;
+    }).catch(() => { })
+    setTotalCharges(eventTotal + suggestionsTotal)
   }, [refreshing])
   const adminFilter = events?.filter((e) => e.admin == adminId);
   const eventFilter = adminFilter?.filter((e) => e.date == (selectDate == undefined ? currentDate : selectDate));
@@ -103,64 +158,57 @@ export default function Index({ navigation }) {
   let allDateObject = {};
   adminFilter?.forEach((day) => {
     allDateObject[day.date] = {
-      customStyles: {
-        container: {
-          width: 50,
-          height: 50,
-          borderRadius: 8
-        },
-        text: {
-          color: 'white',
-          fontWeight: 'bold',
-        }
-      },
       marked: true, dotColor: '#fff'
     };
   });
   let approveSuggestionsDate = {};
   approveSuggestions?.forEach((day) => {
     approveSuggestionsDate[day.date] = {
-      customStyles: {
-        container: {
-          width: 50,
-          height: 50,
-          borderRadius: 8
-        },
-        text: {
-          color: 'white',
-          fontWeight: 'bold',
-        }
-      },
+      // customStyles: {
+      //   container: {
+      //     width: 50,
+      //     height: 50,
+      //     borderRadius: 8
+      //   },
+      //   text: {
+      //     color: 'white',
+      //     fontWeight: 'bold',
+      //   }
+      // },
       marked: true, dotColor: '#fff'
     };
   });
   const mark = {
-    [currentDate]: {
-      customStyles: {
-        container: {
-          backgroundColor: '#D92B50',
-          width: 50,
-          height: 50,
-          borderRadius: 8
-        },
-        text: {
-          color: 'white',
-          fontWeight: 'bold',
-        }
-      },
-      marked: true, dotColor: '#fff'
-    },
+    // [currentDate]: {
+    //   // customStyles: {
+    //   //   container: {
+    //   //     backgroundColor: '#D92B50',
+    //   //     width: 50,
+    //   //     height: 50,
+    //   //     borderRadius: 8
+    //   //   },
+    //   //   text: {
+    //   //     color: 'white',
+    //   //     fontWeight: 'bold',
+    //   //   }
+    //   // },
+    //   marked: true, dotColor: '#fff'
+    // },
     ...allDateObject,
     ...approveSuggestionsDate
   };
-
-  var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  let days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const months = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
   ];
-  let [totalCharges, setTotalCharges] = useState(0)
-  const filterMin = events.filter((e) => e)
-  console.log(filterMin);
+
+  const [fromDate, setFromDate] = useState()
+  const [fromDateDefault, setFromDateDefault] = useState(new Date())
+  const [ToDate, setToDate] = useState()
+  const [ToDateDefault, setToDateDefault] = useState(new Date())
+  const [fromDatePicker, setFromDatePicker] = useState(false)
+  const [toDatePicker, setToDatePicker] = useState(false)
+  let dateFilter = events.filter((e) => e.date >= fromDate && e.date <= ToDate)
   return (
     <View style={styles.container}>
       <View style={styles.background}>
@@ -190,15 +238,68 @@ export default function Index({ navigation }) {
               </View>
             </View>
           </View>
-          {
-            searchQuery.length !== 0 ?
+          {searchQuery.length !== 0 ?
+            // Search View
+            <View>
+              <BlurView intensity={40} tint="light" style={styles.eventListConatinerOnlyListView}>
+                <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                  {
+                    searchFilter.map((e, i) => {
+                      let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev - curr, 0);
+                      eventTotal += charges
+                      return (
+                        <TouchableOpacity key={i} style={styles.eventList} >
+                          <View>
+                            <Text style={styles.eventListTitle}>{e.title}</Text>
+                          </View>
+                          <View style={styles.eventListBottomLine}>
+                            <View>
+                              <Image source={{ uri: state.user.profileImage }} style={styles.eventListBottomLineTeamImage} />
+                            </View>
+                            <View style={styles.eventListBottomLineCalandar}>
+                              <FontAwesome name="calendar" size={18} color="white" />
+                              <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
+                            </View>
+                            <View style={styles.eventListBottomLineCalandar}>
+                              <Octicons name="location" size={18} color="white" />
+                              <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
+                            </View>
+                            <View>
+                              <Text style={styles.eventListBottomLineCalandarText}>{`$${charges}`}</Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      )
+                    })
+                  }
+                </ScrollView>
+              </BlurView>
+            </View>
+            : dateFilter[0] !== undefined ?
+              // Date View 
               <View>
+                <View>
+                  <Text style={styles.calanderTitle}>All events on</Text>
+                </View>
+                <BlurView intensity={40} tint="light" style={styles.selectedDateContainer}>
+                  <View style={styles.dateContainer}>
+                    <Text style={styles.dateContainerText}>{`${fromDate} - ${ToDate}`}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => {
+                    setFromDate(undefined)
+                    setToDate(undefined)
+                    setListView(false)
+                    setTotalCharges(eventTotal + suggestionsTotal)
+                  }}>
+                    <AntDesign name="closecircleo" size={20} color="white" />
+                  </TouchableOpacity>
+                </BlurView>
                 <BlurView intensity={40} tint="light" style={styles.eventListConatinerOnlyListView}>
                   <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
                     {
-                      searchFilter.map((e, i) => {
-                        let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
-                        totalCharges += charges
+                      dateFilter.map((e, i) => {
+                        let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev - curr, 0);
+                        eventTotal += charges
                         return (
                           <TouchableOpacity key={i} style={styles.eventList} >
                             <View>
@@ -226,43 +327,61 @@ export default function Index({ navigation }) {
                     }
                   </ScrollView>
                 </BlurView>
-              </View> :
+              </View>
+              :
               listView == false ?
+                // Calendar View 
                 <View>
-                  <View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', }}>
                     <Text style={styles.calanderTitle}>View events for</Text>
+                    <Text style={styles.calanderTitle}>{`${months[calendarData?.month]} - ${calendarData?.year}`}</Text>
                   </View>
 
-                  <View style={{ marginBottom: 27 }}>
-                    <Calendar
+                  <View style={{ marginBottom: 27, }}>
+                    <CalendarList
                       style={{
-                        height: 310,
+                        height: 270,
+                      }}
+                      key={Key}
+                      dayComponent={({ date, state, marking }) => {
+                        return (
+                          <TouchableOpacity
+                            style={{ backgroundColor: selectDate == undefined ? date.dateString == currentDate ? '#D92B50' : '' : date.dateString == selectDate ? '#D92B50' : '', paddingVertical: 8, paddingHorizontal: 15, borderRadius: 10, marginVertical: -5 }}
+                            onPress={() => {
+                              setToday(new Date(date.timestamp));
+                              setSelectDate(date.dateString)
+                            }}>
+                            <Text style={{ textAlign: 'center', color: "#fff", fontWeight: '600' }}>{date.day}</Text>
+                            {
+                              marking !== undefined ?
+                                <Entypo name="dot-single" size={13} color="white" />
+                                : null
+                            }
+                          </TouchableOpacity>
+                        );
                       }}
                       theme={{
+                        selectedDayBackgroundColor: '#00adf5',
                         textSectionTitleDisabledColor: '#fff',
                         calendarBackground: "#ED8524",
                         backgroundColor: "#ED8524",
-                        textDayStyle: {
-                          textAlign: 'center',
-                          marginTop: 13,
-                          color: "#fff",
-                          fontSize: 17
-                        },
                       }}
                       markingType={'custom'}
                       markedDates={mark}
-
-                      onCalendarToggled={calendarOpened => {
-                      }}
                       hideArrows={true}
                       hideExtraDays={true}
                       renderHeader={date => {
                         <View></View>
                       }}
+                      horizontal={true}
+                      firstDay={1}
+                      onVisibleMonthsChange={(e) => {
+                        setCalendarData({ month: new Date(e[0].timestamp).getMonth(), year: new Date(e[0].timestamp).getFullYear() })
+                      }}
+                      calendarWidth={400}
                       onDayPress={day => {
                         setToday(new Date(day.timestamp));
                         setSelectDate(day.dateString);
-                        setTotalCharges(totalCharges)
                       }}
                     />
                   </View>
@@ -273,8 +392,8 @@ export default function Index({ navigation }) {
                     <ScrollView style={{ height: 75 }} showsVerticalScrollIndicator={false}>
                       {
                         eventFilter?.map((e, i) => {
-                          let charges = e?.team?.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
-                          totalCharges += charges
+                          let charges = e?.team?.map(e => Number(e.price))?.reduce((prev, curr) => prev - curr, 0);
+                          eventTotal += charges
                           return (
                             <TouchableOpacity key={i} style={styles.eventList} onPress={() => {
                               state.selectedEvent = e
@@ -309,6 +428,8 @@ export default function Index({ navigation }) {
                       {
                         approveSuggestionDate?.map((e, i) => {
                           const charges = e?.team?.filter(e => e.id === state.user._id)
+                          let totalCharges = charges?.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
+                          suggestionsTotal += totalCharges
                           return (
                             <TouchableOpacity key={i} style={styles.eventList} onPress={async () => {
                               state.approveSugesstionCharges = charges[0]?.price
@@ -320,8 +441,8 @@ export default function Index({ navigation }) {
                               </View>
                               <View style={styles.eventListBottomLine}>
                                 {/* <View>
-                                  <Image source={require("../../../Assets/Images/team.png")} style={styles.eventListBottomLineTeamImage} />
-                                </View> */}
+                              <Image source={require("../../../Assets/Images/team.png")} style={styles.eventListBottomLineTeamImage} />
+                            </View> */}
                                 <View style={styles.eventListBottomLineCalandar}>
                                   <FontAwesome name="calendar" size={18} color="white" />
                                   <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
@@ -342,46 +463,53 @@ export default function Index({ navigation }) {
                   </BlurView>
                 </View>
                 :
-                // List View 
-                <View>
+                listView !== false ?
                   <View>
-                    <Text style={styles.calanderTitle}>{`All events on ${days[today.getDay()]} ${today.getDate()}, ${months[today.getMonth()]} ${today.getFullYear()}`}</Text>
-                  </View>
-                  <BlurView intensity={40} tint="light" style={styles.eventListConatinerOnlyListView}>
-                    <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-                      {
-                        eventFilter.map((e, i) => {
-                          let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev + curr, 0);
-                          totalCharges += charges
-                          return (
-                            <TouchableOpacity key={i} style={styles.eventList} >
-                              <View>
-                                <Text style={styles.eventListTitle}>{e.title}</Text>
-                              </View>
-                              <View style={styles.eventListBottomLine}>
+                    <View>
+                      <Text style={styles.calanderTitle}>{`All events on ${days[today.getDay()]} ${today.getDate()}, ${months[today.getMonth()]} ${today.getFullYear()}`}</Text>
+                    </View>
+                    <BlurView intensity={40} tint="light" style={styles.eventListConatinerOnlyListView}>
+                      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                        {
+                          eventFilter.map((e, i) => {
+                            let charges = e.team.map(e => Number(e.price))?.reduce((prev, curr) => prev - curr, 0);
+                            eventTotal += charges
+                            return (
+                              <TouchableOpacity key={i} style={styles.eventList} >
                                 <View>
-                                  <Image source={{ uri: state.user.profileImage }} style={styles.eventListBottomLineTeamImage} />
+                                  <Text style={styles.eventListTitle}>{e.title}</Text>
                                 </View>
-                                <View style={styles.eventListBottomLineCalandar}>
-                                  <FontAwesome name="calendar" size={18} color="white" />
-                                  <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
+                                <View style={styles.eventListBottomLine}>
+                                  <View>
+                                    <Image source={{ uri: state.user.profileImage }} style={styles.eventListBottomLineTeamImage} />
+                                  </View>
+                                  <View style={styles.eventListBottomLineCalandar}>
+                                    <FontAwesome name="calendar" size={18} color="white" />
+                                    <Text style={styles.eventListBottomLineCalandarText}>{e.date}</Text>
+                                  </View>
+                                  <View style={styles.eventListBottomLineCalandar}>
+                                    <Octicons name="location" size={18} color="white" />
+                                    <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
+                                  </View>
+                                  <View>
+                                    <Text style={styles.eventListBottomLineCalandarText}>{`$${charges}`}</Text>
+                                  </View>
                                 </View>
-                                <View style={styles.eventListBottomLineCalandar}>
-                                  <Octicons name="location" size={18} color="white" />
-                                  <Text style={styles.eventListBottomLineCalandarText}>{e.location?.slice(0, 11)}...</Text>
-                                </View>
-                                <View>
-                                  <Text style={styles.eventListBottomLineCalandarText}>{`$${charges}`}</Text>
-                                </View>
-                              </View>
-                            </TouchableOpacity>
-                          )
-                        })
-                      }
-                    </ScrollView>
-                  </BlurView>
-                </View>
+                              </TouchableOpacity>
+                            )
+                          })
+                        }
+                      </ScrollView>
+                    </BlurView>
+                  </View> :
+                  null
+
           }
+          {
+
+          }
+
+
 
           <TouchableOpacity style={styles.createEventBtn} onPress={() => navigation.navigate("CreateEvent")}>
             <Text style={styles.createEventBtnText}>Create Event</Text>
@@ -392,7 +520,7 @@ export default function Index({ navigation }) {
           closeOnDragDown={true}
           dragFromTopOnly={true}
           ref={filterRef}
-          height={200}
+          height={400}
           openDuration={250}
           closeDuration={250}
           customStyles={{
@@ -408,21 +536,80 @@ export default function Index({ navigation }) {
           }}
         >
           <View>
-            <View>
+            <View style={{ marginBottom: 20 }}>
               <Text style={styles.filterBoxTitle}>Filter</Text>
             </View>
-            <TouchableOpacity style={styles.listViewBtn} onPress={() => {
+            {/* <TouchableOpacity style={styles.listViewBtn} onPress={() => {
               setListView(true)
               filterRef.current.close()
             }}>
               <Text style={styles.listViewBtnText}>List View</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.listViewBtn} onPress={() => {
-              setListView(false)
-              filterRef.current.close()
-            }}>
-              <Text style={styles.listViewBtnText}>Calendar View</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={styles.viewTitle}>Select View</Text>
+            </View>
+            <SelectDropdown
+              buttonStyle={{ borderRadius: 20, backgroundColor: 'white', borderColor: '#ED3A24', borderWidth: 2, width: 150 }}
+              buttonTextStyle={{ color: '#ED3A24', fontWeight: '600' }}
+              defaultButtonText="Calendar"
+              renderDropdownIcon={() => {
+                return (
+                  <AntDesign name="caretdown" size={15} color="#ED3A24" />
+                )
+              }}
+              dropdownIconPosition="right"
+              data={["Calendar", "List"]}
+              onSelect={(selectedItem, index) => {
+                if (selectedItem == "Calendar") {
+                  setListView(false)
+                }
+                else {
+                  setListView(true)
+                }
+              }}
+              buttonTextAfterSelection={(selectedItem, index) => {
+                return selectedItem
+              }}
+              rowTextForSelection={(item, index) => {
+                return item
+              }}
+            />
+            <View style={{ marginVertical: 20 }}>
+              <Text style={styles.viewTitle}>Sort by date</Text>
+            </View>
+            <View style={{ justifyContent: 'space-between', alignItems: 'center', flexDirection: 'row' }}>
+              <TouchableOpacity style={styles.datePickerBtn} onPress={() => setFromDatePicker(true)}>
+                <Text style={styles.datePickerBtnText}>{fromDate == undefined ? "From" : fromDate}</Text>
+                <AntDesign name="caretdown" size={15} color="#ED3A24" />
+              </TouchableOpacity>
+              {
+                fromDatePicker ?
+                  <RNDateTimePicker value={fromDateDefault} onChange={(event, text) => {
+                    setFromDatePicker(false)
+                    setFromDate(text.toISOString().slice(0, 10))
+                    setFromDateDefault(text)
+                  }} />
+                  : null
+              }
+              <TouchableOpacity style={styles.datePickerBtn} onPress={() => setToDatePicker(true)}>
+                <Text style={styles.datePickerBtnText}>{ToDate == undefined ? "To" : ToDate}</Text>
+                <AntDesign name="caretdown" size={15} color="#ED3A24" />
+              </TouchableOpacity>
+              {
+                toDatePicker ?
+                  <RNDateTimePicker value={ToDateDefault} onChange={(event, text) => {
+                    setToDatePicker(false)
+                    setToDate(text.toISOString().slice(0, 10))
+                    setToDateDefault(text)
+                  }} />
+                  : null
+              }
+            </View>
+            <View>
+              <TouchableOpacity style={styles.exitBtn} onPress={() => filterRef.current.close()}>
+                <Text style={styles.exitBtnText}>Exit/Done</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </RBSheet>
       </View >
@@ -558,6 +745,10 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '400'
   },
+  viewTitle: {
+    fontSize: 17,
+    fontWeight: '400'
+  },
   listViewBtn: {
     paddingVertical: 15,
     borderBottomColor: '#d6d6d6',
@@ -567,4 +758,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '400'
   },
+  datePickerBtn: {
+    borderRadius: 20,
+    borderColor: "#ED3A24",
+    borderWidth: 2,
+    paddingVertical: 12, paddingHorizontal: 16,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    width: '45%'
+  },
+  datePickerBtnText: {
+    color: '#ED3A24', fontWeight: '600', textAlign: 'right', fontSize: 18
+  },
+  exitBtn: {
+    backgroundColor: '#1A4BAB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
+    borderRadius: 20,
+    paddingVertical: 14
+  },
+  exitBtnText: {
+    color: 'white',
+    fontSize: 17, fontWeight: '500'
+  },
+  selectedDateContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 14,
+    marginHorizontal: 16,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    width: 220,
+    paddingVertical: 6
+  },
+  dateContainerText: {
+    color: 'white', fontWeight: '700'
+  }
 })

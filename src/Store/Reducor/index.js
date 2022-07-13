@@ -10,7 +10,9 @@ const DATA = {
     approveSugesstionCharges: '',
     selectedTeamMemberIndex: '',
     updateCharges: false,
-    event: []
+    event: [],
+    todaySuggestions: [],
+    yesterdaySuggestions: []
 }
 
 const Reducor = (state = DATA) => {

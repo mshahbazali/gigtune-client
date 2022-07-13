@@ -104,7 +104,6 @@ export default function Index({ navigation }) {
         }).then((res) => {
             navigation.navigate("SuggestionsApproveDone")
         }).catch((err) => { })
-        console.log("index");
     }
     const rejectRequest = async () => {
         const index = suggestions?.team?.map(function (e) {
@@ -215,7 +214,7 @@ export default function Index({ navigation }) {
                                                     <View key={i} style={styles.teamMember}>
                                                         <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
                                                         <Text style={styles.teamMemberName}>{e.fullName}</Text>
-                                                        <Text style={styles.teamMemberPosition}>{e.jobRole}</Text>
+                                                        <Text style={styles.teamMemberPosition}>{`${e?.jobRole[0]} ${e?.jobRole[1] !== undefined ? e?.jobRole[1] : ''}`}</Text>
                                                     </View>
                                                 )
                                             })

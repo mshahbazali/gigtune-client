@@ -24,7 +24,6 @@ export default function Index({ navigation }) {
                     token: state.token
                 }
             }).then((res) => {
-                console.log(res.data)
                 setCreator({
                     fullName: res.data.user.fullName,
                     profileImage: res.data.user.profileImage
@@ -33,7 +32,6 @@ export default function Index({ navigation }) {
         });
 
         return unsubscribe;
-
     }, [navigation])
     useEffect(() => {
         axios.post(`${Api}/user/admin`, { adminId: approveSuggestion.admin }, {
@@ -41,7 +39,6 @@ export default function Index({ navigation }) {
                 token: state.token
             }
         }).then((res) => {
-            console.log(res.data)
             setCreator({
                 fullName: res.data.user.fullName,
                 profileImage: res.data.user.profileImage
@@ -56,7 +53,6 @@ export default function Index({ navigation }) {
             </TouchableOpacity>
         )
     }
-    console.log(creator);
     return (
         <View style={styles.container}>
             <ImageBackground source={require('../../../Assets/Images/bg.jpg')} resizeMode="cover" style={styles.background}>
@@ -147,7 +143,7 @@ export default function Index({ navigation }) {
                                                     <View key={i} style={styles.teamMember}>
                                                         <Image source={{ uri: e.profileImage }} style={styles.creatorProfileImage} />
                                                         <Text style={styles.teamMemberName}>{e.fullName}</Text>
-                                                        <Text style={styles.teamMemberPosition}>{e.jobRole}</Text>
+                                                        <Text style={styles.teamMemberPosition}>{`${e?.jobRole[0]} ${e?.jobRole[1] !== undefined ? e?.jobRole[1] : ''}`}</Text>
                                                     </View>
                                                 )
                                             })

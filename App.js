@@ -26,7 +26,7 @@ export default function App() {
     }, 3000)
 
   }, [])
-  // AsyncStorage.removeItem('token')
+  AsyncStorage.removeItem('token')
   return (
     <Provider store={store}>
       <RootSiblingParent>

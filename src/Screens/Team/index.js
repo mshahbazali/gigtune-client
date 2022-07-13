@@ -203,7 +203,6 @@ export default function Index({ navigation }) {
             animationType={"slide"}
             closeOnDragDown={true}
             dragFromTopOnly={true}
-            onOpen={(e) => { console.log(e) }}
             ref={optionRef}
             height={200}
             openDuration={250}

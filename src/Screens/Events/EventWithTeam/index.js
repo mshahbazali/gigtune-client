@@ -338,7 +338,7 @@ export default function Index({ navigation }) {
                                                             </View>
                                                             <View style={styles.contactNameData}>
                                                                 <Text style={styles.contactName}>{e?.fullName}</Text>
-                                                                <Text style={styles.contactPosition}>{e?.jobRole}</Text>
+                                                                <Text style={styles.contactPosition}>{`${e?.jobRole[0]} ${e?.jobRole[1] !== undefined ? e?.jobRole[1] : ''}`}</Text>
                                                             </View>
                                                         </View>
                                                     </TouchableOpacity>
@@ -357,7 +357,7 @@ export default function Index({ navigation }) {
                                                                 </View>
                                                                 <View style={styles.contactNameData}>
                                                                     <Text style={styles.contactName}>{e.fullName}</Text>
-                                                                    <Text style={styles.contactPosition}>{e.jobRole}</Text>
+                                                                    <Text style={styles.contactPosition}>{`${e?.jobRole[0]} ${e?.jobRole[1] !== undefined ? e?.jobRole[1] : ''}`}</Text>
                                                                 </View>
                                                             </View>
                                                         </TouchableOpacity>

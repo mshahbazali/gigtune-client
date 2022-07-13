@@ -403,7 +403,6 @@ export default function Index({ navigation }) {
                       setLocation(`${data.structured_formatting.main_text} ${data.structured_formatting.secondary_text}`)
                     }
                     } // required *
-                    // onClose={(data) => console.log(data)}
                     coordinate={true} //optional
                     removeImg={true} //optional
                     StatusBarColor={"white"}
